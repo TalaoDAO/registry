@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QR Code Verifier</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Match home.html header + font -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+
+  <style>
+    /* Keep the page consistent with home.html */
+    body {
+      margin: 0;
+      background: #f7f9fc;
+      color: #333;
+      font-family: Arial, sans-serif;
+    }
+
+    .section {
+      max-width: 1200px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+
+    .qr-card {
+      text-align: center;
+      padding: 2rem;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin: 0 0 0.5rem 0;
+      color: var(--primary);
+      text-align: center;
+    }
+
+    p.lead {
+      font-size: 1.05rem;
+      color: #555;
+      text-align: center;
+      margin: 0 0 1.25rem 0;
+    }
+
+    img.qr {
+      width: 300px;
+      height: 300px;
+      margin: 1rem 0;
+      display: inline-block;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      background: #fff;
+      padding: .5rem;
+    }
+
+    .deep-link {
+      margin-top: 0.75rem;
+      word-break: break-word;
+      color: #007BFF;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .deep-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Header copied to match home.html -->
+  <header>
+    <div>
+      <strong><a style="color: var(--primary); text-decoration: none;" href="/">CONNECTORS</a></strong>
+    </div>
+    <nav>
+      <a href="/documentation/home">Explain ?</a>
+      <a href="https://qhf0siml406.typeform.com/to/PdULRDIV">Contact</a>
+      
+    </nav>
+  </header>
+
+  <main class="section">
+    <h1>Scan to Continue</h1>
+    <p class="lead">Use your compatible wallet to scan the QR code below. This code is valid for a limited time.</p>
+
+    <div class="qr-card" role="region" aria-label="Wallet verification QR">
+      <img class="qr" src="{{ qrcode(url) }}" alt="QR code for wallet sign-in" />
+      <div>
+        <a class="deep-link" href="{{ url }}">{{ url }}</a>
+      </div>
+    </div>
+  </main>
+
+  {% include "footer.html" %}
+
+  <script>
+    function toggleDropdown() {
+      var dropdown = document.getElementById("dropdown");
+      if (!dropdown) return;
+      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
+    window.onclick = function(event) {
+      if (!event.target.matches('.user-icon')) {
+        var dropdown = document.getElementById("dropdown");
+        if (dropdown && dropdown.style.display === "block") {
+          dropdown.style.display = "none";
+        }
+      }
+    };
+
+    // Keep your SSE redirect logic
+    var source = new EventSource('/verifier/wallet/stream');
+    source.onmessage = function (event) {
+      try {
+        const result = JSON.parse(event.data);
+        if (result.session_id == '{{ session_id }}') {
+          window.location.href = '/verifier/wallet/followup?session_id=' + result.session_id;
+        }
+      } catch (e) { /* ignore */ }
+    };
+  </script>
+</body>
+</html>

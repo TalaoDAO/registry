@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VCT Registry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+  <style>
+    :root{ --blue:#1a73e8; --blue-dark:#1558b0; --surface:#ffffff; --border:#e3e3e3;
+           --text:#202124; --subtext:#5f6368; --bg:#f8f9fa; --ok:#166534; --err:#991b1b; }
+    body { margin:0; background:#f7f9fc; color:#333; font-family: Arial, sans-serif; }
+
+    .section { max-width:1800px; margin:4rem auto; padding:0 2rem; }
+    .card { width:100%; max-width:1650px; margin:0 auto; background:var(--surface); border:1px solid var(--border);
+            border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.06); overflow:hidden; }
+    .card-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+    .app-mark { width:28px; height:28px; border-radius:6px; background:var(--blue); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.95rem; }
+    .title { margin:0; font-size:1rem; font-weight:700; font-family:'Roboto'; }
+    .subtitle { margin:0; font-size:.9rem; color:var(--subtext); font-weight:400; font-family:'Roboto'; }
+
+    .card-body { padding:1.25rem; display:grid; gap:1rem; }
+    .note { color:var(--subtext); font-size:.9rem; }
+
+    .dropzone { border:2px dashed var(--border); border-radius:12px; padding:1.25rem; background:#fff;
+      display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+    .dropzone.drag { border-color: var(--blue); background:#f0f6ff; }
+
+    .primary-btn, .secondary-btn, .ghost-btn { appearance:none; border:none; cursor:pointer; text-decoration:none;
+      padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
+      font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .primary-btn { background:var(--blue); color:#fff; }
+    .primary-btn:hover { background:var(--blue-dark); }
+    .secondary-btn { background:#edf2ff; color:#1f3b8a; border:1px solid #c7d2fe; }
+    .ghost-btn { background:transparent; color:#111827; border:1px dashed var(--border); }
+
+    input[type="text"], select { padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px; min-width:220px; }
+    input[name="vc-name"] { min-width: 260px; } /* slightly wider for the name field */
+
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:.75rem 1rem; border-top:1px solid var(--border); text-align:left; font-size:.95rem; vertical-align: middle; }
+    /* prevent long names from dictating min-content width */
+      td:first-child .mono{
+        display:block;
+        max-width:10rem;  /* or 10rem */
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+
+    th { background:#f3f4f6; position:sticky; top:0; z-index:1; }
+    tbody tr:hover { background:#fafafa; }
+
+    .mono { font-family: ui-monospace, Menlo, Consolas, monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:620px; display:inline-block; vertical-align:bottom; }
+    .row-actions { display:flex; gap:.5rem; align-items:center; flex-wrap:nowrap; white-space:nowrap; overflow:auto; }
+
+    .toolbar { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    .toolbar .left, .toolbar .right { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+
+    .stars { display:inline-flex; gap:2px; cursor:pointer; user-select:none; }
+    .star { font-size:1.1rem; color:#d1d5db; }
+    .star.filled { color:#f59e0b; }
+
+    .overlay { position:fixed; inset:0; background:rgba(255,255,255,.7); backdrop-filter: blur(2px);
+               display:none; align-items:center; justify-content:center; z-index:50; }
+    .spinner { width:46px; height:46px; border-radius:999px; border:4px solid #d1d5db; border-top-color:var(--blue);
+               animation: spin 1s linear infinite; }
+
+    /* language chips */
+    .langs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem;   /* space between items */
+      align-items: center;
+    }
+
+    .lang {
+      padding: .2rem .5rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: .8rem;
+      line-height: 1;
+      background: #f3f4f6;  /* light background */
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (prefers-color-scheme: dark) {
+      :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
+      .dropzone { background:#151617; }
+      th { background:#0f172a; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="logo">
+      <strong><a href="/" style="color: var(--primary); text-decoration: none;">VC-REGISTRY.COM</a></strong>
+    </div>
+    <div class="nav-group">
+      <nav>
+        <a href="/menu">Menu</a>
+        <a href="/documentation/vct_registry" target="_blank" rel="noopener">Explain ?</a>
+      </nav>
+      {% include "account.html" %}
+    </div>
+  </header>
+
+  <main class="section">
+    <h1 style="text-align:center; margin:0 0 .5rem 0;">Register a VC Type</h1>
+    <p class="note" style="text-align:center; margin:0 0 1.25rem 0;">
+      Upload a <code>.json</code> VCT Type Metadata file. We’ll compute its <strong>sha256</strong> integrity and store it. You can optionally publish it to the public catalog.
+    </p>
+
+    <article class="card" aria-labelledby="upload-title">
+      <header class="card-header">
+        <div class="app-mark" aria-hidden="true">R</div>
+        <div>
+          <h2 class="title" id="upload-title">Add to Registry</h2>
+          <p class="subtitle">Upload a VCT Type Metadata JSON</p>
+        </div>
+      </header>
+
+      <section class="card-body">
+        <div class="dropzone" id="dropzone">
+          <div>
+            <strong>Drop your VCT JSON here</strong>
+            <div class="note">or click “Choose file”</div>
+          </div>
+          <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+            <label class="switch"><input type="checkbox" checked id="publish-now"> Publish after upload</label>
+
+            <!-- Required VC Type name -->
+            <input type="text" id="vc-name" name="vc-name" placeholder="VC type name (required)" aria-label="VC type name" />
+            <!-- NEW: Required description -->
+            <input type="text" id="vc-desc" name="vc-desc" placeholder="VC type description (required)" aria-label="VC type description" />
+
+            <input type="file" id="file" accept="application/json,.json" />
+            <button id="upload-btn" class="primary-btn" type="button">Upload</button>
+          </div>
+        </div>
+        <div class="note" id="upload-status" style="min-height:1.2em;"></div>
+      </section>
+    </article>
+
+    <article class="card" style="margin-top:1rem;" aria-labelledby="list-title">
+      <header class="card-header">
+        <div class="app-mark" aria-hidden="true">L</div>
+        <div>
+          <h2 class="title" id="list-title">Catalog</h2>
+          <p class="subtitle">Browse your VCTs or explore the public catalog</p>
+        </div>
+      </header>
+      <section class="card-body" style="padding:1rem; display:grid; gap:1rem;">
+        <div class="toolbar">
+          <div class="left">
+            <select id="scope">
+              <option selected value="my">My VCTs</option>
+              <option value="public" >Public Catalog</option>
+              <option value="all">All</option>
+            </select>
+            <input type="text" id="search" placeholder="Search by keywords… e.g. address, birthdate, diploma" />
+            <label class="switch"><input type="checkbox" id="ai-toggle"> Use AI search</label>
+            <button id="search-btn" class="secondary-btn" type="button">Search</button>
+            <button id="reset-btn" class="ghost-btn" type="button">Reset</button>
+          </div>
+          <div class="right">
+            <span class="note">Tip: try field names like <code>given_name</code>, <code>nationalities</code></span>
+          </div>
+        </div>
+
+        <div style="overflow:auto; max-height:60vh;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:7rem;">Name</th>
+                <th style="width:32rem;">Description</th>
+                <th style="width:10rem;">Languages</th>
+                <th style="width:14rem;">Popularity</th>
+                <th style="width:7rem;">Visible</th>
+                <th style="width:28rem;">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody id="rows">
+              <tr id="empty-row"><td colspan="6" class="note" style="padding:1rem;">No entries yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  {% include "footer.html" %}
+
+  <div class="overlay" id="overlay">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.75rem;">
+      <div class="spinner"></div>
+      <div class="mono">Working…</div>
+    </div>
+  </div>
+
+  <script>
+    const dz = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file');
+    const publishNow = document.getElementById('publish-now');
+    const uploadBtn = document.getElementById('upload-btn');
+    const statusEl = document.getElementById('upload-status');
+    const rows = document.getElementById('rows');
+    const emptyRow = document.getElementById('empty-row');
+    const overlay = document.getElementById('overlay');
+    const scopeSel = document.getElementById('scope');
+    const searchInput = document.getElementById('search');
+    const aiToggle = document.getElementById('ai-toggle');
+    const searchBtn = document.getElementById('search-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const nameInput = document.getElementById('vc-name'); // existing
+    const descriptionInput = document.getElementById('vc-desc'); // NEW
+
+    function overlayOn(on){ overlay.style.display = on ? 'flex' : 'none'; }
+    function setStatus(text, ok=null){
+      statusEl.textContent = text || '';
+      statusEl.style.color = ok === false ? '#991b1b' : ok === true ? '#166534' : '';
+    }
+
+    async function copyText(text, label){
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus((label || 'Copied') + ' ✓', true);
+      } catch {
+        try {
+          const ta = document.createElement('textarea'); ta.value = text;
+          document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+          setStatus((label || 'Copied') + ' ✓', true);
+        } catch { setStatus('Copy failed', false); }
+      }
+    }
+
+    function starEl(f){ const s = document.createElement('span'); s.className='star'+(f?' filled':''); s.textContent='★'; return s; }
+    function renderStarsCell(item){
+      const wrap = document.createElement('div');
+      const stars = document.createElement('div'); stars.className = 'stars';
+      const rounded = Math.round((item.your_rating || item.avg_rating || 0));
+      for (let i=1;i<=5;i++){ const el = starEl(i<=rounded); el.title = item.your_rating ? `Your rating: ${item.your_rating}★` : `Average: ${Number(item.avg_rating||0).toFixed(1)}★ (${item.ratings_count||0})`; el.addEventListener('click', () => rate(item.id, i)); stars.appendChild(el); }
+      const meta = document.createElement('div'); meta.className='note'; meta.textContent = `${(item.avg_rating||0).toFixed(1)}★ • ${item.ratings_count||0} ratings • ${item.calls_count||0} calls`;
+      wrap.appendChild(stars); wrap.appendChild(meta); return wrap;
+    }
+
+    ;['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+    ;['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+    dz.addEventListener('drop', e => {
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change')); // trigger auto-fill on drop
+      }
+    });
+
+    // --- helpers to extract/fallback name/description from VCT JSON ---
+    function pickDisplayBlock(obj) {
+      const arr = Array.isArray(obj?.display) ? obj.display : [];
+      const en = arr.find(
+        it => it && typeof it === 'object'
+          && typeof it.lang === 'string'
+          && it.lang.toLowerCase().startsWith('en')
+      );
+      return en || arr[0] || {};
+    }
+
+    
+    function guessNameFromVctOrFilename(obj, file){
+      const vct = String(obj.vct || '').split(/[/:]/).pop() || '';
+      const fname = (file?.name || '').replace(/\.json$/i, '');
+      return vct || fname || '';
+    }
+    async function extractMetaFromFile(file){
+      const raw = await file.text();
+      const obj = JSON.parse(raw);
+      const disp = pickDisplayBlock(obj);
+      const schema = obj.schema || {};
+      const name = obj.name || disp.name || schema.title || guessNameFromVctOrFilename(obj, file);
+      const description = obj.description || disp.description || schema.description || '';
+      return { name: String(name || '').trim(), description: String(description || '').trim() };
+    }
+
+    // Auto-fill name/description when user selects a file
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      try {
+        const { name, description } = await extractMetaFromFile(f);
+
+        // only auto-fill if the inputs are still empty (don't overwrite user's text)
+        if (name && !nameInput.value.trim()) nameInput.value = name;
+        if (description && !descriptionInput.value.trim()) descriptionInput.value = description;
+
+        if (!name || !description) {
+          const missing = [!name ? 'name' : null, !description ? 'description' : null].filter(Boolean).join(' & ');
+          setStatus(`Missing ${missing} — please fill before uploading.`, false);
+          (!name ? nameInput : descriptionInput).focus();
+        } else {
+          setStatus('Loaded name & description from file ✓', true);
+        }
+      } catch (e) {
+        setStatus('Invalid JSON: ' + (e.message || e), false);
+      }
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+      const f = fileInput.files && fileInput.files[0];
+      const name = (nameInput.value || '').trim();
+      const description = (descriptionInput.value || '').trim();
+
+      if (!f) { setStatus('Please choose a JSON file first.', false); return; }
+      if (!name) { setStatus('Please enter the VC type name (required).', false); nameInput.focus(); return; }
+      if (!description) { setStatus('Please enter the VC description (required).', false); descriptionInput.focus(); return; }
+
+      setStatus('Preparing upload…'); overlayOn(true);
+      try {
+        // Read and merge "name" + "description" into the JSON before uploading
+        const rawText = await f.text();
+        let obj;
+        try { obj = JSON.parse(rawText); }
+        catch(e){ throw new Error('Invalid JSON: ' + e.message); }
+
+        obj.name = name;               // enforce/overwrite name in the document
+        obj.description = description; // enforce/overwrite description in the document
+
+        const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+        const fd = new FormData();
+        fd.append('file', blob, f.name || 'vct.json');
+        fd.append('publish', publishNow.checked ? 'true' : 'false');
+
+        setStatus('Uploading…');
+        const resp = await fetch('/vct/registry/api/upload', { method: 'POST', body: fd });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.error || 'Upload failed');
+
+        setStatus(data.is_public ? 'Added and published ✓' : 'Added ✓', true);
+        fileInput.value = ''; publishNow.checked = true; nameInput.value = ''; descriptionInput.value = '';
+        await refreshList();
+      } catch (e) {
+        console.error(e);
+        setStatus(e.message || 'Upload failed', false);
+      } finally {
+        overlayOn(false);
+      }
+    });
+
+    async function rate(id, stars){
+      overlayOn(true);
+      try{
+        const r = await fetch('/vct/registry/api/rate/' + id, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({stars})});
+        const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error || 'Rating failed');
+        await refreshList();
+      }catch(e){ alert(e.message); } finally{ overlayOn(false); }
+    }
+
+    async function refreshList(){
+      if (aiToggle.checked){ await aiSearch(); return; }
+      const params = new URLSearchParams({ scope: scopeSel.value, q: searchInput.value.trim() });
+      const resp = await fetch('/vct/registry/api/list?' + params.toString());
+      if (!resp.ok) return; const data = await resp.json(); renderRows(data);
+    }
+
+    async function aiSearch(){
+      const body = { q: searchInput.value.trim(), scope: scopeSel.value, top_k: 20 };
+      const resp = await fetch('/vct/registry/api/ai_search', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      if (!resp.ok){ console.warn('AI search fallback to list'); return refreshList(false); }
+      const data = await resp.json(); renderRows(data);
+    }
+
+    function renderRows(data){
+      rows.innerHTML = '';
+      if (!data.length) { rows.appendChild(emptyRow); return; }
+
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+
+        const tdName = document.createElement('td'); 
+        tdName.innerHTML = `<a href="${item.vct}" target="_blank" rel="noopener" class="mono" title="${item.name}">${item.name}</a>`;
+        const tdDescription = document.createElement('td'); tdDescription.textContent = item.description || '(unnamed)';
+
+        // languages column
+        const tdLang = document.createElement('td');
+        const langWrap = document.createElement('div'); langWrap.className = 'langs';
+        const langs = Array.isArray(item.languages_supported) ? item.languages_supported : [];
+        if (langs.length) {
+          langs.forEach(code => {
+            const chip = document.createElement('span');
+            chip.className = 'lang';
+            chip.textContent = String(code || '').toUpperCase();
+            langWrap.appendChild(chip);
+          });
+        } else {
+          const none = document.createElement('span');
+          none.className = 'note';
+          none.textContent = '—';
+          langWrap.appendChild(none);
+        }
+        tdLang.appendChild(langWrap);
+
+        const tdPop  = document.createElement('td'); tdPop.appendChild(renderStarsCell(item));
+
+        const tdVis  = document.createElement('td');
+        const vis = document.createElement('button'); vis.type='button';
+        vis.className='secondary-btn'; vis.textContent = item.is_public ? 'Public' : 'Private';
+        vis.addEventListener('click', async () => {
+          if (scopeSel.value === 'public' && !item.is_public) return;
+          overlayOn(true);
+          try {
+            const r = await fetch('/vct/registry/api/visibility/' + item.id, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ is_public: !item.is_public })});
+            const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error || 'Failed to change visibility');
+            await refreshList();
+          } catch(e){ alert(e.message); } finally { overlayOn(false); }
+        });
+        tdVis.appendChild(vis);
+
+        const tdAct  = document.createElement('td'); tdAct.className='row-actions';
+        const dlVct = document.createElement('a'); dlVct.className='secondary-btn'; dlVct.textContent='Download VCT'; dlVct.href='/vct/registry/api/download/' + item.id;
+        const dlSchema = document.createElement('a'); dlSchema.className='ghost-btn'; dlSchema.textContent='Schema only'; dlSchema.href='/vct/registry/api/download_schema/' + item.id;
+        const copyVctBtn = document.createElement('button'); copyVctBtn.type='button'; copyVctBtn.className='ghost-btn'; copyVctBtn.textContent='Copy VCT URL'; copyVctBtn.addEventListener('click', () => copyText(item.vct || '', 'VCT URL copied'));
+        const copyIntBtn = document.createElement('button'); copyIntBtn.type='button'; copyIntBtn.className='ghost-btn'; copyIntBtn.textContent='Copy integrity'; copyIntBtn.addEventListener('click', () => copyText(item.integrity || '', 'Integrity copied'));
+        const score = document.createElement('span'); if (typeof item.score !== 'undefined'){ score.className='note'; score.textContent = `score: ${Number(item.score).toFixed(2)}`; }
+
+        tdAct.appendChild(dlVct);
+        tdAct.appendChild(dlSchema);
+        tdAct.appendChild(copyVctBtn);
+        tdAct.appendChild(copyIntBtn);
+        if (score.textContent) tdAct.appendChild(score);
+        if (scopeSel.value !== 'public') {
+          const del = document.createElement('button'); del.type='button'; del.className='secondary-btn'; del.textContent='Delete';
+          del.addEventListener('click', async () => {
+            if (!confirm(`Delete "${item.name}"?`)) return;
+            overlayOn(true);
+            try {
+              const r = await fetch('/vct/registry/api/delete/' + item.id, { method:'POST' });
+              const d = await r.json().catch(()=>({})); if (!r.ok) throw new Error(d.error || 'Delete failed');
+              await refreshList();
+            } catch(e){ alert(e.message); } finally { overlayOn(false); }
+          });
+          tdAct.appendChild(del);
+        }
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdDescription);
+        tr.appendChild(tdLang);  
+        tr.appendChild(tdPop);
+        tr.appendChild(tdVis);
+        tr.appendChild(tdAct);
+        rows.appendChild(tr);
+      });
+    }
+
+    searchBtn.addEventListener('click', refreshList);
+    resetBtn.addEventListener('click', () => { searchInput.value=''; refreshList(); });
+    scopeSel.addEventListener('change', refreshList);
+
+    // initial load
+    refreshList();
+  </script>
+</body>
+</html>

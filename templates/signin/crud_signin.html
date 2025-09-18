@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Verifier - CONNECTORS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+
+  <style>
+    .container {
+      max-width: 800px;
+      margin: 3rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    /* Key/Value rows */
+    .kv { display: grid; grid-template-columns: 220px 1fr; gap: .75rem 1rem; align-items: center; }
+    .kv + .kv { margin-top: .5rem; }
+    .kv .label { color: var(--label); font-weight: 600; }
+    .kv .value { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+
+    h1 { color: var(--primary); text-align: center; }
+    form { display: grid; gap: 1rem; }
+    form input[type="text"],
+    form select,
+    form textarea {
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    form button[type="submit"] {
+      background: var(--accent); color: white; border: none; padding: 0.75rem;
+      font-weight: bold; border-radius: 8px; cursor: pointer;
+    }
+    .flashes { margin: 1rem 0; color: green; font-weight: bold; }
+    label { margin-bottom: 0.25rem; display: block; font-weight: 600; }
+
+    /* Toggle buttons row */
+    .toggle-row {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+    /* Reuse the same visual language for all toggles */
+    .toggle-btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .5rem .75rem; border-radius: 8px; border: 1px solid #ddd; background: #fafafa;
+      cursor: pointer; width: fit-content; font-weight: 600;
+    }
+    .toggle-btn:hover { background: #f2f2f2; }
+    .chevron { transition: transform .2s ease; display: inline-block; }
+
+    /* Panels */
+    .panel {
+      display: none;
+      padding: 1rem;
+      border: 1px dashed #e3e3e3;
+      border-radius: 10px;
+      background: #fcfcfc;
+    }
+    .panel.show { display: block; }
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="logo">
+    <strong><a href="/" style="color: var(--primary); text-decoration: none;">WALLET-CONNECTORS.COM</a></strong>
+  </div>
+  <div class="nav-group">
+    <nav>
+      <a href="/menu">Menu</a>
+      <a href="/signin/select/{{signin_type}}">Select</a>
+      <a href="/signin/swagger">Swagger</a>
+      <a href="/documentation/signin_create" target="_blank" rel="noopener">Explain ?</a>
+    </nav>
+    {% include "account.html" %}
+  </div>
+</header>
+
+<div class="container">
+    <h1>{{title}}</h1>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flashes">
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" enctype="multipart/form-data">
+
+     <div class="section-card" style="margin-bottom: 1rem;">
+      <input value="{{api}}", name="api" hidden>
+
+
+      <div class="kv">
+        <div class="label">OAuth 2.0 URL</div>
+        <div class="value">
+          <input id="url" type="text" value="{{ api['url'] }}" readonly>
+          <button type="button" class="copy-btn" data-copy="#url">Copy</button>
+        </div>
+      </div>
+
+      <div class="kv">
+        <div class="label">client_id</div>
+        <div class="value">
+          <input id="client_id" type="text" value="{{ api['client_id'] }}" readonly>
+          <button type="button" class="copy-btn" data-copy="#client_id">Copy</button>
+        </div>
+      </div>
+
+      <div class="kv">
+        <div class="label">client_secret</div>
+        <div class="value">
+          <input id="client_secret" type="text" value="{{ api['client_secret'] }}" readonly>
+          <button type="button" class="copy-btn" data-copy="#client_secret">Copy</button>
+        </div>
+      </div>
+    </div>
+
+
+
+
+    <label>Name</label>
+    <input type="text" name="name" value="{{name}}" placeholder="Verifier name" required>
+
+    <label>Description</label>
+    <textarea rows="4" name="description" placeholder="">{{description}}</textarea>
+
+
+    <label for="log">Enable Log</label>
+    <select name="log" id="log">
+      <option value="True" {{ 'selected' if log else '' }}>Yes</option>
+      <option value="False" {{ 'selected' if not log else '' }}>No</option>
+    </select>
+
+    <!--
+    <label>Select Landing page:</label>
+      <select name="landing_page">
+        {% for page in landing_page_available_definitions %}
+          <option {{ 'selected' if landing_page == page else '' }} value="{{page}}">{{page}}</option>
+        {% endfor %}
+      </select>
+
+    <label for="log">Enable Log</label>
+    <select name="log" id="log">
+      <option value="True" {{ 'selected' if log else '' }}>Yes</option>
+      <option value="False" {{ 'selected' if not log else '' }}>No</option>
+    </select> -->
+
+
+    <!-- Toggle buttons row -->
+    <div class="toggle-row" role="toolbar" aria-label="General options">
+      <button type="button" class="toggle-btn" id="btn-general" aria-expanded="false" aria-controls="panel-general">
+        <span class="chevron" aria-hidden="true">▸</span> General options
+      </button>
+      <button type="button" class="toggle-btn" id="btn-response" aria-expanded="false" aria-controls="panel-response">
+        <span class="chevron" aria-hidden="true">▸</span> Response
+      </button>
+     
+      <button type="button" class="toggle-btn" id="btn-wallet" aria-expanded="false" aria-controls="panel-wallet">
+        <span class="chevron" aria-hidden="true">▸</span> Wallet & Redirect
+      </button>
+       <button type="button" class="toggle-btn" id="btn-metadata" aria-expanded="false" aria-controls="panel-metadata">
+        <span class="chevron" aria-hidden="true">▸</span> Verifier Metadata
+      </button>
+    </div>
+
+    <!-- Panel A: General options -->
+    <div id="panel-general" class="panel" role="region" aria-label="General options">
+      
+      
+    <label>Client ID Scheme:</label>
+    <select name="client_id_scheme"  >
+      <option value="redirect_uri" {{ 'selected' if client_id_scheme == "redirect_uri" else '' }}>redirect_uri</option>
+      <option value="did" {{ 'selected' if client_id_scheme == "did" else '' }}>did</option>
+      <option value="x509_san_dns" {{ 'selected' if client_id_scheme == "x509_san_dns" else '' }}>x509_san_dns</option>
+      <option value="x509_san_uri" {{ 'selected' if client_id_scheme == "x509_san_uri" else '' }}>x509_san_uri</option>
+    </select>
+
+
+    <label>Credential ID for Request JWT:</label>
+    <select name="credential_id" required>
+      {% for credential in credentials %}
+      <option value="{{credential.credential_id}}">{{credential.credential_id}}</option>
+      {% endfor %}
+    </select>
+
+
+    <label>Digital Credential API</label>
+      <select name="dc_api">
+         <option disabled value="True" {{ 'selected' if dc_api else '' }}>Yes</option>
+          <option value="False" {{ 'selected' if not dc_api  else ''}}>No</option>
+      </select>
+      
+     {% set draft_options = [
+  ("8",  "ID1 Draft 8"),
+  ("18", "ID2 Draft 18 (EBSI V3)"),
+  ("20", "Draft 20 (DIIP V3)"),
+  ("22", "ID3 Draft 22"),
+  ("28", "Draft 28 (DIIP V4)"),
+  ("30", "Final 1.0")
+] %}
+
+<label>OIDC4VP Draft:</label>
+<select name="draft" id="draft" required onchange="updateClientIdSchemes()">
+  {% for value, label in draft_options %}
+    <option value="{{ value }}" {{ 'selected' if (draft|string) == value else '' }}>
+      {{ label }}
+    </option>
+  {% endfor %}
+</select>
+
+<label>Presentation Format:</label>
+      <select name="presentation_format" id="formatSelector" onchange="toggleFormatOptions()" required>
+        <option selected value="presentation_exchange">Presentation Exchange</option>
+        <option value="dcql_query">Digital Credential Query Language</option>
+      </select>
+
+    
+    </div>
+
+    <!-- Panel B: Response settings -->
+    <div id="panel-response" class="panel" role="region" aria-label="Response settings">
+      <label>Response Mode</label>
+      <select name="response_mode">
+        <option value="direct_post" {{ 'selected' if response_mode == "direct_post" else '' }}>direct_post</option>
+        <option value="direct_post.jwt" {{ 'selected' if response_mode == "direct_post.jwt" else '' }}>direct_post.jwt</option>
+      </select>
+
+    
+      <label>Response Encryption</label>
+      <select name="response_encryption">
+         <option value="True" {{ 'selected' if response_encryption else '' }}>Yes</option>
+          <option value="False" {{ 'selected' if not response_encryption  else ''}}>No</option>
+      </select>
+
+      <label>Credential ID for Encryption Response</label>
+      <select name="credential_id_for_encryption">
+        {% for credential in encryption_credentials %}
+          <option value="{{credential.credential_id}}">{{credential.credential_id}}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+
+
+    <!-- Panel D: Wallet & Redirect -->
+    <div id="panel-wallet" class="panel" role="region" aria-label="Wallet & Redirect">
+      <label>Wallet Invocation</label>
+      <select name="prefix">
+        <option selected value="openid-vc://">openid-vc://</option>
+        <option value="haip://">haip://</option>
+        <option value="siopv2://">siopv2://</option>
+        <option value="eudiw://">eudiw://</option>
+        <option value="talao-openid-vc://">talao-openid-vc://</option>
+        <option value="altme-openid-vc://">altme-openid-vc://</option>
+      </select>
+
+    </div>
+
+     <!-- Panel E: Verifier Metadada -->
+    <div id="panel-metadata" class="panel" role="region" aria-label="Verifier Metadata">
+       
+
+      <label for="key">Client Metadata (JSON)</label>
+      <textarea id="signin_metadata" rows="10" name="signin_metadata" placeholder='{}'>{{ signin_metadata | tojson(indent=2) if signin_metadata else '' }}</textarea>
+      <div class="hint">A JSON object containing the Verifier metadata values. It MUST be UTF-8 encoded.Leave empty to skip.</div>
+
+      <label for="signin_info">Verifier Info (JSON)</label>
+      <textarea id="key" name="signin_info" placeholder='[{}]'>{{ signin_info | tojson(indent=2) if signin_info else '' }}</textarea>
+      <div class="hint">An array of attestations about the Verifier relevant to the Credential Request. Leave empty to skip.</div>
+
+    </div>
+
+    <button type="submit" class="button">{{button}}</button>
+  </form>
+</div>
+
+{% include "footer.html" %}
+
+<script>
+  /* Header dropdown helpers */
+  function toggleDropdown() {
+    const dropdown = document.getElementById("dropdown");
+    if (!dropdown) return;
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+  }
+  window.onclick = function(event) {
+    if (!event.target.matches('.user-icon')) {
+      const dropdown = document.getElementById("dropdown");
+      if (dropdown && dropdown.style.display === "block") {
+        dropdown.style.display = "none";
+      }
+    }
+  };
+
+  
+  function updateClientIdSchemes() {
+    const draftEl = document.getElementById("draft");
+    const schemeSelect = document.getElementById("client_id_scheme");
+    if (!schemeSelect) return;
+    const draft = draftEl ? draftEl.value : "20";
+    const opts = schemeOptions[draft] || [];
+    schemeSelect.innerHTML = "";
+    opts.forEach(opt => {
+      const o = document.createElement("option");
+      o.value = opt.value;
+      o.textContent = opt.label;
+      schemeSelect.appendChild(o);
+    });
+  }
+
+
+  window.updateClientIdSchemes = updateClientIdSchemes;
+
+
+  // Multi-panel toggle utility
+  function setupToggle(btnId, panelId) {
+    const btn = document.getElementById(btnId);
+    const panel = document.getElementById(panelId);
+    if (!btn || !panel) return;
+    const chev = btn.querySelector('.chevron');
+    btn.addEventListener('click', () => {
+      const open = !panel.classList.contains('show');
+      panel.classList.toggle('show', open);
+      btn.setAttribute('aria-expanded', String(open));
+      if (chev) chev.style.transform = open ? 'rotate(90deg)' : 'rotate(0deg)';
+    });
+  }
+
+  // Safe no-op for format toggling if not defined elsewhere
+  function toggleFormatOptions(){}
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateClientIdSchemes();
+    setupToggle('btn-general', 'panel-general');
+    setupToggle('btn-response', 'panel-response');
+    setupToggle('btn-wallet', 'panel-wallet');
+     setupToggle('btn-metadata', 'panel-metadata');
+  });
+</script>
+</body>
+</html>

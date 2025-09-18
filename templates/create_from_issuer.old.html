@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create VC Type — From Existing Issuer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+  <style>
+    :root{ --google-blue:#1a73e8; --google-blue-dark:#1558b0; --surface:#ffffff; --border:#e3e3e3;
+           --text:#202124; --subtext:#5f6368; --bg:#f8f9fa; --ok:#166534; --err:#991b1b; }
+    body { margin:0; background:#f7f9fc; color:#333; font-family: Arial, sans-serif; }
+    .section { max-width:1200px; margin:4rem auto; padding:0 2rem; }
+    .card { width:100%; max-width:1100px; margin:0 auto; background:var(--surface); border:1px solid var(--border);
+            border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.06); overflow:hidden; }
+    .card-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+    .app-mark { width:28px; height:28px; border-radius:6px; background:var(--google-blue); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.95rem; }
+    .title { margin:0; font-size:1rem; font-weight:700; font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .subtitle { margin:0; font-size:.9rem; color:var(--subtext); font-weight:400; font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .card-body { padding:1.25rem; display:grid; gap:1rem; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:1rem; }
+    .row { display:grid; gap:.5rem; }
+    label { font-weight:600; color:#1f2937; }
+    input[type="text"], input[type="file"], textarea, input[type="url"], select {
+      width:100%; padding:.7rem .85rem; border:1px solid var(--border); border-radius:8px; font-size:.95rem; background:#fff;
+    }
+    .check { display:inline-flex; align-items:center; gap:.5rem; font-size:.95rem; color:#374151; }
+    .actions { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; }
+    .primary-btn, .secondary-btn, .ghost-btn {
+      appearance:none; border:none; cursor:pointer; text-decoration:none;
+      padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
+      font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    }
+    .primary-btn { background:var(--google-blue); color:#fff; }
+    .primary-btn:hover { background:var(--google-blue-dark); }
+    .secondary-btn { background:#edf2ff; color:#1f3b8a; border:1px solid #c7d2fe; }
+    .ghost-btn { background:transparent; color:#111827; border:1px dashed var(--border); }
+    .note { color:var(--subtext); font-size:.9rem; }
+    .editor-wrap { display:grid; gap:.5rem; }
+    .editor-status { font-size:.85rem; color:var(--subtext); }
+    .editor-ok { color: var(--ok); font-weight:600; }
+    .editor-err { color: var(--err); font-weight:600; }
+    .editor { width:100%; height:520px; border:1px solid var(--border); border-radius:12px; padding:.75rem .9rem;
+      background:#0b1020; color:#e6edf3; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:.92rem; line-height:1.4; tab-size:2; white-space:pre; overflow:auto; }
+    .overlay { position:fixed; inset:0; background:rgba(255,255,255,.7); backdrop-filter: blur(2px);
+               display:none; align-items:center; justify-content:center; z-index:50; }
+    .spinner { width:46px; height:46px; border-radius:999px; border:4px solid #d1d5db; border-top-color:var(--google-blue);
+               animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display:none !important; }
+    @media (prefers-color-scheme: dark) {
+      :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
+      input[type="text"], input[type="file"], textarea, input[type="url"], select { background:#151617; color:#e8eaed; }
+      .secondary-btn { background:#0f172a; color:#cbd5e1; border:1px solid #334155; }
+      .ghost-btn { color:#cbd5e1; border-color:#334155; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <strong><a style="color: var(--primary); text-decoration: none;" href="/">VC-REGISTRY.COM</a></strong>
+    </div>
+    <div class="nav-group">
+      <nav>
+        <a href="/menu">Menu</a>
+        <a href="/documentation/create_from_issuer" target="_blank" rel="noopener">Explain ?</a>
+      </nav>
+      {% include "account.html" %}
+    </div>
+  </header>
+
+  <main class="section">
+    <h1 style="text-align:center; margin:0 0 .5rem 0;">Create a VC Type — From Existing Issuer</h1>
+    <p class="note" style="text-align:center; margin:0 0 1.25rem 0;">
+      Provide an OIDC4VCI <strong>Credential Issuer</strong> URL. The builder fetches issuer metadata and derives a VCT file (SD‑JWT VC).
+      You can review & edit the generated JSON before saving.
+    </p>
+
+    <article class="card" role="form" aria-labelledby="form-title" aria-describedby="form-desc">
+      <header class="card-header">
+        <div class="app-mark" aria-hidden="true">C</div>
+        <div>
+          <h2 class="title" id="form-title">VC Type Builder</h2>
+          <p class="subtitle" id="form-desc">Enter issuer URL, then click <em>Load</em> to choose a credential configuration from the issuer metadata.</p>
+        </div>
+      </header>
+
+      <section class="card-body">
+        <form id="attestation-form" class="grid" autocomplete="off">
+          <div class="row">
+            <label for="name">VCT name</label>
+            <input id="name" name="name" type="text" placeholder="Work ID" value="{{ name or '' }}">
+            <p class="note">Optional. If omitted, we use the first available display name.</p>
+          </div>
+
+          <input type="hidden" name="input_mode" value="issuer" />
+
+          <div class="row" id="issuer-row">
+            <label for="issuer_url">Credential Issuer URL</label>
+            <input id="issuer_url" name="issuer_url" type="url" required placeholder="https://talao.co/issuer/hrngdrpura" />
+            <p class="note">Issuer metadata is fetched from <code>/.well-known/openid-credential-issuer</code> (fallback: direct URL).</p>
+          </div>
+
+          <div class="row" id="config-row">
+            <label for="config_id">Credential configuration</label>
+            <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="secondary-btn" id="load-configs-btn" aria-controls="config_id">Load</button>
+            </div>
+            <select id="config_id" name="config_id" required class="hidden" aria-live="polite"></select>
+            <p class="note" id="config-desc">Click <strong>Load</strong> to fetch SD‑JWT VC configurations from the issuer metadata.</p>
+          </div>
+
+          <div class="row" id="vct-source-row">
+            <label>When issuer provides a remote VCT (URL):</label>
+            <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+              <label class="check"><input type="radio" name="on_remote_vct" value="extends" checked /> Use <code>extends</code> with integrity</label>
+              <label class="check"><input type="radio" name="on_remote_vct" value="import" /> Import and inline the remote VCT</label>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="primary-btn" id="generate-btn">Generate Metadata</button>
+            <button type="button" class="secondary-btn" id="format-btn" disabled>Format</button>
+            <button type="button" class="secondary-btn" id="validate-btn" disabled>Validate</button>
+            <button type="button" class="ghost-btn" id="reset-btn" disabled>Reset to Server Result</button>
+            <button type="button" class="secondary-btn" id="copy-btn" disabled>Copy</button>
+            <button type="button" class="primary-btn" id="download-btn" disabled>Save JSON to Desktop</button>
+            <span id="status" class="note editor-status"></span>
+          </div>
+
+          <div class="row editor-wrap" id="editor-wrap" style="display:none;">
+            <label for="editor">Editable JSON</label>
+            <div id="editor" class="editor" contenteditable="true" spellcheck="false" aria-multiline="true" aria-label="Editable JSON"></div>
+            <span id="editor-msg" class="note"></span>
+          </div>
+        </form>
+      </section>
+    </article>
+  </main>
+
+  <div class="overlay" id="overlay" aria-live="polite" aria-busy="true">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.75rem;">
+      <div class="spinner" aria-hidden="true"></div>
+      <div style="font-family: ui-monospace, Menlo, Consolas, monospace;">Generating… please wait</div>
+    </div>
+  </div>
+
+  {% include "footer.html" %}
+
+  <script>
+    const form = document.getElementById('attestation-form');
+    const overlay = document.getElementById('overlay');
+    const editorWrap = document.getElementById('editor-wrap');
+    const editor = document.getElementById('editor');
+    const status = document.getElementById('status');
+    const editorMsg = document.getElementById('editor-msg');
+
+    const downloadBtn = document.getElementById('download-btn');
+    const formatBtn = document.getElementById('format-btn');
+    const validateBtn = document.getElementById('validate-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const copyBtn = document.getElementById('copy-btn');
+
+    const loadBtn = document.getElementById('load-configs-btn');
+    const configSelect = document.getElementById('config_id');
+    const configDesc = document.getElementById('config-desc');
+
+    let lastBlobUrl = null;
+    let lastFilename = null;
+    let serverJsonText = '';
+
+    function showOverlay(on) { overlay.style.display = on ? 'flex' : 'none'; }
+    function enableEditorTools(on) {
+      formatBtn.disabled = !on;
+      validateBtn.disabled = !on;
+      resetBtn.disabled = !on;
+      copyBtn.disabled = !on;
+      downloadBtn.disabled = !on;
+      editorWrap.style.display = on ? 'grid' : 'none';
+    }
+    function setStatus(text, ok=null) {
+      status.textContent = text || '';
+      status.classList.remove('editor-ok','editor-err');
+      if (ok === true) status.classList.add('editor-ok');
+      if (ok === false) status.classList.add('editor-err');
+    }
+    function getEditorText() { return editor.innerText.replace(/\u00A0/g, ' '); }
+    function setEditorText(txt) { editor.textContent = txt; }
+    function makeDownload(text, filename) {
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      lastBlobUrl = URL.createObjectURL(blob);
+      lastFilename = filename;
+      downloadBtn.disabled = false;
+    }
+
+    async function loadIssuerConfigs() {
+      const issuerUrl = document.getElementById('issuer_url').value.trim();
+      if (!issuerUrl) { alert('Please enter the Credential Issuer URL first.'); return; }
+      configSelect.classList.add('hidden');
+      configSelect.innerHTML = '';
+      configSelect.required = true;
+      setStatus('Loading issuer configurations…');
+      try {
+        const resp = await fetch('/attestation/api/issuer-configs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ issuer_url: issuerUrl })
+        });
+        const text = await resp.text();
+        if (!resp.ok) throw new Error(text || 'Server error');
+        let items = [];
+        try { items = JSON.parse(text); } catch { items = []; }
+        if (!Array.isArray(items) || items.length === 0) {
+          configDesc.textContent = 'No SD‑JWT VC configurations found in issuer metadata.';
+          setStatus('No configurations found', false);
+          return;
+        }
+        const makeLabel = (it) => {
+          const parts = [];
+          if (it.name) parts.push(it.name);
+          if (!it.name && it.id) parts.push(it.id);
+          if (it.vct) parts.push(`(${it.vct})`);
+          return parts.join(' ');
+        };
+        items.forEach(it => {
+          const opt = document.createElement('option');
+          opt.value = String(it.id || '');
+          opt.textContent = makeLabel(it);
+          if (it.vct) opt.dataset.vct = it.vct;
+          configSelect.appendChild(opt);
+        });
+        if (items.length === 1) configSelect.selectedIndex = 0;
+        configSelect.classList.remove('hidden');
+        configDesc.textContent = `Loaded ${items.length} configuration${items.length>1?'s':''}. Please choose one.`;
+        setStatus('Configurations loaded ✓', true);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to load issuer configurations. ' + err.message);
+        setStatus('Load failed', false);
+        configDesc.textContent = 'Click Load to retry.';
+      }
+    }
+
+    loadBtn.addEventListener('click', loadIssuerConfigs);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      enableEditorTools(false);
+      setStatus(''); editorMsg.textContent = '';
+      showOverlay(true);
+
+      const onRemote = (document.querySelector('input[name="on_remote_vct"]:checked')?.value || 'extends');
+
+      const cfgValue = configSelect.classList.contains('hidden') ? '' : (configSelect.value || '');
+      if (!cfgValue) { alert('Please click Load, then choose a credential configuration.'); showOverlay(false); return; }
+
+      const payload = {
+        input_mode: 'issuer',
+        name: document.getElementById('name').value.trim() || undefined,
+        issuer_url: document.getElementById('issuer_url').value.trim(),
+        on_remote_vct: onRemote,
+        config_id: cfgValue,
+        vct_match: (configSelect.selectedOptions[0]?.dataset?.vct || undefined)
+      };
+
+      try {
+        const resp = await fetch('/attestation/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const text = await resp.text();
+        if (!resp.ok) throw new Error(text || 'Server error');
+        const json = JSON.parse(text);
+
+        const full = JSON.stringify(json, null, 2);
+        serverJsonText = full;
+        setEditorText(full);
+        enableEditorTools(true);
+
+        const vctName = (json && json.vct ? String(json.vct) : 'vc_type')
+          .split('/').pop().split('.').pop().replace(/[^a-z0-9_-]/gi,'_');
+        const ts = new Date().toISOString().replace(/[:.]/g,'-');
+        const filename = `vct_${vctName}_${ts}.json`;
+        makeDownload(full, filename);
+
+        setStatus(`Result ready — you can edit before saving.`, true);
+      } catch (err) {
+        alert('Failed to generate metadata. Please check your inputs and try again.\n' + err.message);
+        console.error(err);
+        setStatus('Generation failed', false);
+      } finally {
+        showOverlay(false);
+      }
+    });
+
+    // === Editor tool handlers ===
+    formatBtn.addEventListener('click', () => {
+      try {
+        const obj = JSON.parse(getEditorText());
+        setEditorText(JSON.stringify(obj, null, 2));
+        setStatus('Formatted ✓', true);
+        editorMsg.textContent = '';
+      } catch (e) {
+        setStatus('Cannot format: invalid JSON', false);
+        editorMsg.textContent = e.message || String(e);
+      }
+    });
+
+    validateBtn.addEventListener('click', () => {
+      try {
+        JSON.parse(getEditorText());
+        setStatus('Valid JSON ✓', true);
+        editorMsg.textContent = '';
+      } catch (e) {
+        setStatus('Invalid JSON', false);
+        editorMsg.textContent = e.message || String(e);
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if (!serverJsonText) { setStatus('Nothing to reset to yet', false); return; }
+      setEditorText(serverJsonText);
+      setStatus('Reset to server result', true);
+      editorMsg.textContent = '';
+      if (lastFilename) makeDownload(serverJsonText, lastFilename);
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const text = getEditorText();
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.focus(); ta.select();
+          document.execCommand('copy'); document.body.removeChild(ta);
+        }
+        setStatus('Copied to clipboard ✓', true);
+      } catch (e) {
+        setStatus('Copy failed', false);
+        editorMsg.textContent = e.message || String(e);
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      let text = getEditorText();
+      if (!text) { setStatus('Nothing to save', false); return; }
+      if (lastFilename) { makeDownload(text, lastFilename); }
+      else {
+        const ts = new Date().toISOString().replace(/[:.]/g,'-');
+        makeDownload(text, `vct_${ts}.json`);
+      }
+      try {
+        const a = document.createElement('a');
+        a.href = lastBlobUrl; a.download = lastFilename || 'vct.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setStatus('Saved ✓', true);
+      } catch (e) {
+        setStatus('Save failed', false); editorMsg.textContent = e.message || String(e);
+      }
+    });
+  </script>
+</body>
+</html>

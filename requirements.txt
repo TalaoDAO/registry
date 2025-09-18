@@ -1,0 +1,14 @@
+Flask
+Flask-Session
+flask-qrcode
+flask-restx
+flask-login
+flask-migrate
+jwcrypto
+redis
+markdown
+requests
+base58
+oauthlib
+pkce
+langchain-openai

@@ -1,0 +1,110 @@
+:root {
+  --primary: #2f4858;
+  --accent: #00a8cc;
+  --bg-light: #f4f4f9;
+  --bg-dark: #1e1e2f;
+  --text-dark: #1c1c1e;
+  --text-light: #eeeeee;
+}
+
+body {
+  font-family: 'Orbitron', sans-serif;
+  margin: 0;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+}
+header {
+  min-height: 64px;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  box-sizing: border-box;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* controls spacing between nav and user icon */
+}
+
+nav a {
+  margin: 0 1rem;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 2.5rem;  /* optional for vertical balance */
+}
+
+nav a:hover {
+  color: var(--accent);
+}
+
+.user-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.user-icon {
+  background: var(--accent);
+  color: white;
+  padding: 0.4rem 0.8rem;  /* reduce vertical padding */
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;         /* match nav link font size */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;          /* explicit height */
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  background-color: white;
+  min-width: 180px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+  border-radius: 8px;
+}
+
+.dropdown-content a {
+  color: var(--primary);
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  display: block;
+  font-weight: 500;
+}
+
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+}
+
+.user-menu:hover .dropdown-content {
+  display: block;
+}
+
+nav button {
+  display: inline-block;       /* Ensures <a> behaves like <button> */
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;       /* Removes underline on <a> */
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}

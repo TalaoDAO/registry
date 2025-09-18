@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QR Code Sign-In</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Match home.html header + font -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+
+  <style>
+    :root{
+      --card-bg:#fff; --muted:#555; --b:#e5e7eb; --shadow:0 2px 8px rgba(0,0,0,.04);
+      --accent:#0b7285; --accent-2:#1971c2; --ok:#166534; --warn:#92400e; --err:#991b1b;
+
+      /* Google-style vars */
+      --google-blue: #1a73e8;
+      --google-blue-dark: #1558b0;
+      --surface: #ffffff;
+      --border: #e3e3e3;
+      --text: #202124;
+      --subtext: #5f6368;
+      --bg: #f8f9fa;
+    }
+
+    body { margin: 0; background: #f7f9fc; color: #333; font-family: Arial, sans-serif; }
+    .section { max-width: 1200px; margin: 4rem auto; padding: 0 2rem; }
+
+    /* --- Google-style QR card (lifted from google_style.html) --- */
+    .qr-container { display:flex; justify-content:center; }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+   .card-header {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  justify-content: flex-start; /* keep mark + text together on the left */
+}
+
+    .app-mark { width: 28px; height: 28px; border-radius: 6px; background: var(--google-blue);
+      display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .95rem; }
+    .title { margin: 0; font-size: 1rem; font-weight: 700; font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .subtitle { margin: 0; font-size: .9rem; color: var(--subtext); font-weight: 400; font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .card-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+    .qr-wrap { display: grid; place-items: center; padding: .5rem 0; }
+    img.qr { width: 240px; height: 240px; border-radius: 8px; border: 1px solid var(--border); padding: .5rem; background: #fff; }
+    .hint { text-align: center; font-size: .95rem; color: var(--subtext); font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .divider { display: flex; align-items: center; gap: .75rem; color: var(--subtext); font-size: .85rem; }
+    .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .primary-btn {
+      appearance: none; border: none; cursor: pointer; text-decoration: none;
+      width: 100%; text-align: center; padding: .85rem 1rem; background: var(--google-blue);
+      color: #fff; font-weight: 600; border-radius: 8px; transition: background .2s ease, transform .02s ease;
+      display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+      font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    }
+    .primary-btn:hover { background: var(--google-blue-dark); }
+    .primary-btn:active { transform: translateY(1px); }
+    .url-box { display: grid; gap: .5rem; margin-top: .25rem; }
+    .url { width: 100%; padding: .6rem .75rem; border: 1px solid var(--border); border-radius: 8px; background: #f9fafb; color: #3c4043; font-size: .85rem; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .muted { color: var(--subtext); font-size: .8rem; text-align: center; }
+
+    @media (max-width: 480px) { .card { max-width: 360px; } img.qr { width: 200px; height: 200px; } }
+    @media (prefers-color-scheme: dark) { :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; } .url { background:#151617; color:#e8eaed; } .app-mark { color:#fff; } }
+
+    /* --- Existing live log styles (unchanged) --- */
+    h1 { font-size: 1.8rem; margin: 0 0 .5rem 0; color: var(--primary); text-align: center; }
+    p.lead { font-size: 1.05rem; color: var(--muted); text-align: center; margin: 0 0 1.25rem 0; }
+
+    .log-card { margin-top: 1.5rem; padding: 1rem 1rem .75rem; background: var(--card-bg); border: 1px solid var(--b); border-radius: 16px; box-shadow: var(--shadow); }
+    .log-header{ display:flex; align-items:center; gap:.75rem; justify-content:space-between; margin-bottom:.5rem; }
+    .log-title{ font-weight:700; color: var(--accent); display:flex; align-items:center; gap:.5rem; }
+    .pill{ display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .5rem; border-radius:999px; font-size:.8rem; border:1px solid var(--b); background:#f1f5f9; }
+    .dot{ width:.5rem; height:.5rem; border-radius:999px; background:#94a3b8; }
+    .dot.ok{ background:#22c55e; } .dot.off{ background:#ef4444; }
+    .log-controls{ display:flex; gap:.5rem; align-items:center; }
+    .btn{ appearance:none; border:1px solid var(--b); background:#fff; padding:.35rem .6rem; border-radius:10px; cursor:pointer; font-size:.85rem; }
+    .btn:hover{ border-color:#cbd5e1; }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{ border-color:#2563eb; }
+    .log-wrap{ border:1px solid var(--b); border-radius:12px; background:#fcfcfd; max-height: 340px; overflow:auto; padding:.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:.9rem; }
+    .log-list{ list-style:none; margin:0; padding:.25rem; }
+    .log-item{ display:flex; align-items:flex-start; gap:.5rem; padding:.35rem .25rem; border-bottom:1px dashed #eef2f7; }
+    .log-item:last-child{ border-bottom:none; }
+    .badge{ padding:.1rem .45rem; border-radius:8px; font-size:.72rem; border:1px solid var(--b); white-space:nowrap; }
+    .badge.request{ background:#e0f2fe; color:#075985; }
+    .badge.response{ background:#dcfce7; color:#166534; }
+    .badge.error{ background:#fee2e2; color:#991b1b; }
+    .ts{ color:#64748b; min-width: 10.5rem; white-space:nowrap; font-variant-numeric: tabular-nums; }
+    .summary{ flex:1; word-break: break-word; }
+    .status{ color:#475569; min-width:3.5rem; text-align:right; }
+    .muted-note{ color:#94a3b8; }
+    .kbd { font: 500 .78rem ui-monospace, SFMono-Regular, Menlo, monospace; border:1px solid var(--b); border-bottom-width:2px; padding:.08rem .3rem; border-radius:6px; background:#f8fafc; }
+
+    .log-item.block { display:flex; flex-direction:column; align-items:stretch; }
+    .log-item .topline { display:flex; align-items:flex-start; gap:.5rem; }
+    .log-item .meta { margin:.35rem 0 0 0; padding-left:2.1rem; font-size:.85rem; color:#374151; }
+    .meta .row { margin:.15rem 0; }
+    .meta .kv { width:100%; border-collapse:collapse; margin:.15rem 0; }
+    .meta .kv th, .meta .kv td { padding:.15rem .35rem; border-bottom:1px dashed #eef2f7; text-align:left; vertical-align:top; }
+    .meta details { margin-top:.25rem; }
+    .meta details > summary { cursor:pointer; user-select:none; }
+    .meta pre { margin:.25rem 0; padding:.5rem; border:1px solid var(--b); border-radius:8px; background:#fff; max-height:180px; overflow:auto; }
+    .meta .kv code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.85rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Header copied to match home.html -->
+  <header>
+    <div>
+      <strong><a style="color: var(--primary); text-decoration: none;" href="/">WALLET-CONNECTORS.COM</a></strong>
+    </div>
+    <nav>
+      <a href="/signin/select/{{signin_type}}">Select</a>
+      <a href="/signin/online-test/audit/{{ signin_id }}">Audit</a>
+      <a href="/documentation/home">Explain ?</a>
+    </nav>
+  </header>
+
+  <main class="section">
+    <h1>Scan to Test</h1>
+    <p class="lead">Use your compatible wallet to scan the QR code below. This code is valid for a limited time.</p>
+
+    <!-- Google-style QR box -->
+    <div class="qr-container">
+      <main class="card" role="dialog" aria-labelledby="dialog-title" aria-describedby="dialog-desc">
+        <header class="card-header">
+  <div class="app-mark" aria-hidden="true">C</div>
+  <div>
+    <h2 class="title" id="dialog-title">Continue with CONNECTORS</h2>
+    <p class="subtitle" id="dialog-desc">Verify your identity with your wallet</p>
+  </div>
+</header>
+
+
+        <section class="card-body">
+          <div class="qr-wrap">
+            <img class="qr" src="{{ qrcode(url) }}" alt="QR code for wallet sign-in" />
+          </div>
+          <p class="hint">Scan with your compatible wallet app, or continue on this device.</p>
+
+          <div class="divider">or</div>
+
+          <!-- Direct open in wallet (same link as QR) -->
+          <a class="primary-btn" href="{{ url }}" id="open-wallet">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 5v8m0 0 3-3m-3 3-3-3M5 19h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Continue in wallet
+          </a>
+
+          <div class="url-box">
+            <div class="url" aria-label="Deep link">{{ url }}</div>
+            <div class="muted">Having trouble? Copy the link above and open it in your wallet.</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Live log card (unchanged) -->
+    <section class="log-card" aria-live="polite" aria-busy="false">
+      <div class="log-header">
+        <div class="log-title">
+          <span>Wallet Requests & Responses</span>
+          <span id="sse-status" class="pill"><span id="sse-dot" class="dot off"></span><span id="sse-state">Disconnected</span></span>
+        </div>
+        <div class="log-controls">
+          <button id="pause-btn" class="btn" title="Pause/resume stream (or press P)">
+            <span id="pause-icon">⏸</span> <span id="pause-label">Pause</span>
+          </button>
+          <button id="copy-btn" class="btn" title="Copy visible lines">📋 Copy</button>
+          <button id="clear-btn" class="btn" title="Clear log">🧹 Clear</button>
+
+          <!-- Redirect control: appears when event arrives -->
+          <button id="continue-redirect" class="btn primary" style="display:none" title="Go to follow-up">▶ Continue</button>
+        </div>
+      </div>
+      <div class="log-wrap" id="log-wrap">
+        <ul id="log-list" class="log-list">
+          <li class="log-item muted"><span class="badge">info</span><span class="ts">—</span><span class="summary">Waiting for events for session <span class="kbd">{{ session_id }}</span>…</span><span class="status"></span></li>
+        </ul>
+      </div>
+      <div class="muted-note" style="margin-top:.5rem; font-size:.85rem;">
+        Tip: the panel auto-scrolls while you’re at the bottom. Scroll up to pause auto-scroll. Press <span class="kbd">P</span> to pause/resume.
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+
+  <script>
+    // ... (script unchanged)
+  </script>
+</body>
+</html>

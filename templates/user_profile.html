@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Account</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+      <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+
+
+  <style>
+    .account-container {
+      max-width: 400px;
+      margin: 3rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+
+    .profile-pic {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin-bottom: 1rem;
+    }
+
+    form {
+      margin-top: 2rem;
+      text-align: left;
+    }
+
+    form label, form input {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    form button {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      background-color: var(--accent);
+      color: white;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+
+  <header>
+  <div class="logo">
+    <strong>
+      <a href="/" style="color: var(--primary); text-decoration: none;">VC-REGISTRY.COM</a>
+    </strong>
+  </div>
+
+  <div class="nav-group">
+    <nav>
+      <a href="/menu">Menu</a>
+    </nav>
+      {% include "account.html" %}
+
+  </div>
+</header>
+
+
+  <div class="account-container">
+
+    <!-- ✅ Profile picture at the top, centered -->
+    {% if user.profile_picture %}
+      <img class="profile-pic" src="{{ url_for('static', filename='uploads/' ~ user.profile_picture) }}" alt="Profile Picture">
+    {% else %}
+      <img class="profile-pic" src="{{ url_for('static', filename='default-avatar.png') }}" alt="Default Picture">
+    {% endif %}
+
+    <h1>Welcome {{ user.given_name or user.name or ""}}</h1>
+    {% if user.sub %}
+    <p><strong>Wallet:</strong> {{ user.sub[:10]}}...{{ user.sub[-10:] }}</p>
+    {% endif %}
+    {% if user.email %}
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    {% endif %}
+    <p><strong>Country:</strong> {{ user.country }}</p>
+    {% if user.subscription != "free" %}
+    <p><strong>Vintegris Username:</strong> {{ user.qtsp_account()["username"] }}</p>
+    <p><strong>Vintegris Tenant ID:</strong> {{ user.qtsp_account()["tenant_id"] }}</p>
+    <p><strong>Vintegris Trusted App:</strong> {{ user.qtsp_account()["app_name"] }}</p>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+      <label for="picture">Upload New Picture:</label>
+      <input type="file" name="picture" accept="image/*">
+      <button type="submit">Upload</button>
+    </form>
+
+  </div>
+{% include "footer.html" %}
+
+<script>
+  function toggleDropdown() {
+    var dropdown = document.getElementById("dropdown");
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+  }
+
+  window.onclick = function(event) {
+    if (!event.target.matches('.user-icon')) {
+      var dropdown = document.getElementById("dropdown");
+      if (dropdown && dropdown.style.display === "block") {
+        dropdown.style.display = "none";
+      }
+    }
+  };
+</script>
+</body>
+</html>

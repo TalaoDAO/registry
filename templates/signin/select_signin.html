@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Manage SignIns - CONNECTORS</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="{{ url_for('static', filename='header.css') }}" rel="stylesheet"/>
+<style>
+    .container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      color: var(--primary);
+      margin-bottom: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.75rem;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: var(--bg-light);
+    }
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+   .button {
+  display: inline-block;       /* Ensures <a> behaves like <button> */
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;       /* Removes underline on <a> */
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+    .btn-create {
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      padding: 0.75rem 1.5rem;
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+    }
+    .btn-delete {
+      background: red;
+      color: white;
+    }
+    .btn-edit {
+      background: #2f4858;
+      color: white;
+    }
+
+  
+.inline-wait {
+  display: none;
+  margin: 1rem 0 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid #cdd7de;
+  border-radius: 10px;
+  background: #f7fbfc;
+  color: #05383b;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.inline-wait .row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.inline-wait .spinner {
+  border: 3px solid #eee;
+  border-top: 3px solid #053336;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { 100% { transform: rotate(360deg);} }
+.inline-wait .actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+.inline-wait .btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 600;
+}
+.inline-wait .btn-cancel {
+  background: white;
+  border-color: #cdd7de;
+}
+.inline-wait .btn-continue {
+  background: #2f4858;
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">
+<strong><a href="/" style="color: var(--primary); text-decoration: none;">WALLET-CONNECTORS.COM</a></strong>
+</div>
+<nav>
+<a href="/menu">Menu</a>
+    {% if signin_type == "sandbox" and user.subscription != "free" %}
+        <a href="/signin/select/qualified">Production</a>
+    {% elif signin_type == "qualified" %}
+        <a href="/signin/select/sandbox">Sandbox</a>
+    {% endif %}
+    <a href="/signin/create/{{signin_type}}">Create</a>
+    <a href="/signin/swagger">Swagger</a>
+
+<a href="/documentation/signin_select">Explain ?</a>
+    {% include "account.html" %}
+  </nav>
+</header>
+<div class="container">
+  {% if signin_type == "sandbox" %}
+  <h1>Your Sandbox Sign-Ins</h1>
+<div aria-live="polite" class="inline-wait" id="inline-wait" role="status">
+<div class="row">
+<div aria-hidden="true" class="spinner"></div>
+<div class="message"><strong>Preparing audit…</strong> This can take a moment. You can continue or cancel to stay on this page.</div>
+<div class="actions">
+<button class="btn btn-continue" id="wait-continue" type="button">Continue</button>
+<button class="btn btn-cancel" id="wait-cancel" type="button">Cancel</button>
+</div>
+</div>
+</div>
+
+  {% else %}
+  <h1>Your Qualified SignIns</h1>
+  {% endif %}
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flashes">
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  
+    <a class="btn-create" href="/signin/create/{{signin_type}}">+ Create New Sign-In</a>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>client_id</th>
+<th>Credential ID</th>
+<th>Client Id Scheme</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+      {% for signin in signins %}
+      {% set api = signin.application_api_json %}
+      <tr>
+<td>{{ signin.name }}</td>
+<td>{{ api["client_id"][:10] + "..." }}</td>
+<td>
+          {% if signin.credential_id %}
+            {{ signin.credential_id }}
+          {% else %}
+            <span style="color: red;">None - To Be Updated</span>
+          {% endif %}
+        </td>
+<td>{{ signin.client_id_scheme }}</td>
+<td class="actions">
+<form action="/signin/delete/{{signin_type}}/{{ signin.id }}" method="POST" onsubmit="return confirmDelete('{{ signin.name }}')">
+<button class="button btn-delete" type="submit">Delete</button>
+</form>
+<a class="button btn-edit" href="/signin/update/{{signin_type}}/{{ signin.id }}">Update</a>
+<a class="button btn-edit" href="/signin/online-test/audit/{{signin_type}}/{{ signin.id }}">Audit</a>
+<a class="button btn-edit" href="/signin/online-test/test/{{signin_type}}/{{ signin.id }}">Test</a>
+          {% if signin_type == "sandbox" and user.subscription != "free" %}
+          <a class="button btn-edit" href="/signin/go_to_production/{{signin_type}}/{{ signin.id }}">Move to Production</a>
+          {% elif  signin_type == "qualified" %}
+          <a class="button btn-edit" href="/signin/go_to_sandbox/{{signin_type}}/{{ signin.id }}">Move to Sandbox</a>
+          {% endif %}
+
+        </td>
+</tr>
+      {% else %}
+      <tr><td colspan="6">You have no Sign-Ins yet.</td></tr>
+      {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% include "footer.html" %}
+
+<script>
+  function toggleDropdown() {
+    var dropdown = document.getElementById("dropdown");
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+  }
+
+  // Optional: close dropdown on click outside
+  window.onclick = function(event) {
+    if (!event.target.matches('.user-icon')) {
+      var dropdown = document.getElementById("dropdown");
+      if (dropdown && dropdown.style.display === "block") {
+        dropdown.style.display = "none";
+      }
+    }
+  };
+</script>
+<script>
+  function confirmDelete(name) {
+    return confirm(`Delete signin "${name}"? This cannot be undone.`);
+  }
+</script>
+
+
+<script>
+document.querySelectorAll('a[href*="/signin/online-test/audit/"]').forEach(link => {
+  link.addEventListener('click', function(e){
+    document.getElementById('loading-overlay').style.display = 'flex';
+  });
+});
+</script>
+<script>
+(function(){
+  let pendingHref = null;
+  let pendingTimer = null;
+
+  function showWait(href){
+    pendingHref = href;
+    const box = document.getElementById('inline-wait');
+    if (box) box.style.display = 'block';
+    scheduleAutoContinue();
+  }
+
+  function hideWait(){
+    const box = document.getElementById('inline-wait');
+    if (box) box.style.display = 'none';
+    if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+    pendingHref = null;
+  }
+
+  function scheduleAutoContinue(){
+    if (pendingTimer) clearTimeout(pendingTimer);
+    // Auto-continue after a brief pause unless canceled
+    pendingTimer = setTimeout(function(){
+      if (pendingHref) window.location.href = pendingHref;
+    }, 800);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    // Bind audit links
+    document.querySelectorAll('a[href*="/signin/online-test/audit/"]').forEach(link => {
+      link.addEventListener('click', function(e){
+        e.preventDefault();
+        showWait(this.href);
+      });
+    });
+
+    // Continue button
+    const btnContinue = document.getElementById('wait-continue');
+    if (btnContinue){
+      btnContinue.addEventListener('click', function(){
+        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+        if (pendingHref) window.location.href = pendingHref;
+      });
+    }
+
+    // Cancel button
+    const btnCancel = document.getElementById('wait-cancel');
+    if (btnCancel){
+      btnCancel.addEventListener('click', function(){
+        hideWait();
+        // Optionally go back to previous page if desired:
+        // window.history.back();
+      });
+    }
+  });
+})();
+</script></body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VC Registry — VC Type Metadata</title>
+
+  <meta name="description" content="Publish, discover, and generate SD-JWT VC Types with clear schema and multilingual display metadata." />
+  <link rel="canonical" href="https://vc-registry.com/">
+  <meta name="robots" content="index,follow" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+
+  <style>
+    :root{ --blue:#1a73e8; --blue-dark:#1558b0; --surface:#ffffff; --border:#e5e7eb; --sub:#6b7280; }
+
+    html,body{ margin:0 }
+    body{ background:#f7f9fc; color:#111827; font-family: Arial, sans-serif; }
+    a{ color:inherit; text-underline-offset: 2px; }
+
+    /* Page frame */
+    main{ max-width:1200px; margin:0 auto; padding:1.25rem; }
+
+    /* Header — match menu.html look & spacing */
+    header{ display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:#fff; }
+    .nav-group{ display:flex; align-items:center; gap:1rem; }
+
+    /* Hero */
+    .hero{ padding:.9rem 0 1.25rem; border-bottom:1px solid var(--border); }
+    .hero h1{ font-family:'Orbitron','Roboto',Arial,sans-serif; font-size:1.95rem; margin:.2rem 0; font-weight:800; letter-spacing:.2px; }
+    .hero p{ margin:0; color:var(--sub); }
+
+    /* Cards & layout */
+    .block{ margin-top:1rem; }
+    .grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; }
+    .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; display:flex; flex-direction:column; gap:.5rem; }
+    .card h2{ margin:0; font-size:1.05rem; }
+
+    /* Buttons — same vibe as menu */
+    .actions{ margin-top:.5rem; display:flex; gap:.5rem; flex-wrap:wrap; }
+    .btn{ display:inline-flex; align-items:center; gap:.35rem; padding:.55rem .8rem; border-radius:8px; font-weight:600; text-decoration:none; border:1px solid #c7d2fe; background:#edf2ff; color:#1f3b8a; }
+    .btn:hover{ background:#e0e7ff; }
+    .btn-primary{ background:var(--blue); border-color:var(--blue); color:#fff; }
+    .btn-primary:hover{ background:var(--blue-dark); }
+
+    /* Code example with toolbar */
+    .code-card .code-toolbar{ display:flex; justify-content:space-between; align-items:center; gap:.75rem; }
+    .code-card .code-toolbar .label{ font-size:.9rem; color:var(--sub); }
+    .copy-btn{ cursor:pointer; user-select:none; padding:.35rem .6rem; border-radius:6px; border:1px solid var(--border); background:#fff; }
+    .copy-btn:hover{ background:#f3f4f6; }
+
+    code,pre{ font-family: ui-monospace, Menlo, Consolas, monospace; font-size:.9rem; }
+    pre{ background:#0b1220; color:#e5e7eb; padding:1rem; border-radius:8px; overflow:auto; max-height:420px; }
+
+    .muted{ color:var(--sub); }
+    .flashes{ max-width:900px; margin:.75rem auto 0; padding:.5rem 1rem; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:8px }
+  /* KPI strip */
+  .kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:.75rem; margin-top:1rem; }
+  .kpi { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:.9rem; }
+  .kpi .label { font-size:.86rem; color:var(--sub); }
+  .kpi .value { font-size:1.6rem; font-weight:800; margin-top:.25rem; }
+  .kpi .sub { font-size:.85rem; color:var(--sub); margin-top:.2rem; }
+
+  .lang-badges { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.4rem; }
+  .lang-badges .badge { padding:.25rem .45rem; font-size:.82rem; border-radius:999px; border:1px solid var(--border); background:#fff; }
+  @media (prefers-color-scheme: dark) {
+    .kpi { background:var(--surface); border-color:var(--border); }
+    .lang-badges .badge { background:#0f172a; border-color:#334155; color:#cbd5e1; }
+    /* Dark mode */
+    @media (prefers-color-scheme: dark) {
+      :root{ --surface:#1f1f1f; --border:#2a2a2a; --sub:#9aa0a6; }
+      body{ background:#0f1113; color:#e8eaed; }
+      header{ background:#141618; }
+      .btn{ background:#0f172a; color:#cbd5e1; border-color:#334155; }
+      .btn:hover{ background:#111b2e; }
+      .btn-primary{ background:#2563eb; border-color:#2563eb; color:#fff; }
+      .btn-primary:hover{ background:#1e40af; }
+      .copy-btn{ background:#1f2937; color:#e5e7eb; border-color:#374151; }
+      .copy-btn:hover{ background:#111827; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header aligned with menu.html -->
+  <header>
+    <div>
+      <strong><a href="/" style="text-decoration:none;">VC-REGISTRY.COM</a></strong>
+    </div>
+    <div class="nav-group">
+      <nav>
+        <a href="https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-11.html#name-sd-jwt-vc-type-metadata" target="_blank" rel="noopener">IETF VC Type Metadata</a>
+      </nav>
+      {% if user.id %}
+      {% include "account.html" %}
+      {% endif %}
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flashes" role="status">
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main id="content" role="main">
+    <!-- HERO -->
+    <section class="hero">
+      <h1>VC Type Metadata Registry</h1>
+      <p class="muted">Publish and discover SD-JWT VC Types (VCT). Generate types from issuers or schemas, localize display labels once, and reference a stable URL in your systems.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="/vct/registry/browse">Open registry</a>
+        <a class="btn btn-primary" href="/vct/registry">Register a VC Type</a>
+        <a class="btn" href="/attestation/generate/scratch">VC Type from Scratch</a>
+        <a class="btn" href="/attestation/generate/schema">VC Type from a Schema</a>
+        <a class="btn" href="/attestation/generate/issuer">VC Type from an Issuer</a>
+      </div>
+    </section>
+     <!-- KPI STRIP -->
+    <section class="kpis" aria-label="Key metrics">
+      <div class="kpi" role="status">
+        <div class="label">Public VCTs</div>
+        <div class="value">{{ stats.total_public or 0 }}</div>
+      </div>
+      <div class="kpi" role="status">
+        <div class="label">Added last 7 days</div>
+        <div class="value">{{ stats.new_week or 0 }}</div>
+      </div>
+      <div class="kpi" role="status">
+        <div class="label">Total calls</div>
+        <div class="value">{{ stats.total_calls or 0 }}</div>
+      </div>
+      <div class="kpi" role="status">
+        <div class="label">Avg rating</div>
+        <div class="value">{{ '%.2f'|format(stats.avg_rating or 0.0) }}<span class="sub"> / 5</span></div>
+      </div>
+      <div class="kpi" role="status">
+        <div class="label">Top languages</div>
+        <div class="lang-badges">
+          {% if stats.top_langs %}
+            {% for lang, cnt in stats.top_langs %}
+              <span class="badge">{{ lang }} × {{ cnt }}</span>
+            {% endfor %}
+          {% else %}
+            <span class="sub">No data yet</span>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- TOP 3 MOST CALLED VCTs -->
+    <section class="block" aria-label="Popular">
+      <div class="card">
+        <h2 style="margin-bottom:.5rem;">Top 3 most called VCTs</h2>
+
+        {% if stats.top_vcts and stats.top_vcts|length > 0 %}
+          <ol style="margin:0; padding-left:1.2rem;">
+            {% for item in stats.top_vcts %}
+              <li style="margin:.35rem 0;">
+                <div style="display:flex; justify-content:space-between; gap:.75rem; align-items:baseline;">
+                  <div>
+                    <strong>{{ item.name or 'Untitled VCT' }}</strong>
+                    {% if item.vct %}
+                      <span class="muted">·</span>
+                      <a class="muted" href="{{ item.vct }}?preview=1" target="_blank" rel="noopener">open →</a>
+                    {% endif %}
+                  </div>
+                  <div class="muted">{{ item.calls_count }} calls</div>
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <p class="muted" style="margin:0;">No calls yet.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- WHAT YOU CAN DO / WHO / WHEN -->
+    <section class="block grid">
+      <div class="card">
+        <h2>What you can do</h2>
+        <ul>
+          <li><strong>Generate VC Types</strong> three ways: from an <em>Issuer</em> (OIDC4VCI), from a <em>JSON Schema</em>, or <em>from scratch</em> with assisted AI.</li>
+          <li><strong>Localize once</strong>: produce <code>display[]</code> labels/descriptions in up to <strong>30 languages</strong>, reuse everywhere.</li>
+          <li><strong>Publish</strong> to a registry with a stable URL and integrity hash, or keep private while you iterate.</li>
+          <li><strong>Discover & reuse</strong> existing types from the public catalog to avoid duplicates.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Who it's for</h2>
+        <ul>
+          <li><strong>Project managers</strong> who need a shared reference for names, fields, and UI labels.</li>
+          <li><strong>CTOs/architects</strong> coordinating issuers, wallets, and verifiers across vendors.</li>
+          <li><strong>Integrators</strong> aligning schema and UX wording without long back-and-forth.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>When to use it</h2>
+        <ul>
+          <li>Before implementation, to agree on the credential type and UI text.</li>
+          <li>When converging multiple JSON Schemas into a single approved type.</li>
+          <li>When preparing partner documentation and localization.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- GENERATION PATHS -->
+    <section class="block grid">
+      <div class="card">
+        <h2>Generate from an Issuer</h2>
+        <p>Fetch an OIDC4VCI <strong>Credential Issuer</strong> metadata, select a configuration, and we prefill VCT fields (type identifier, display, claims, schema where available).</p>
+        <div class="actions"><a class="btn" href="/attestation/generate/issuer">Import from issuer →</a></div>
+      </div>
+      <div class="card">
+        <h2>Generate from JSON Schema</h2>
+        <p>Upload a JSON Schema (2020-12+). We keep property names and help you add multilingual <code>display[]</code>.</p>
+        <div class="actions"><a class="btn" href="/attestation/generate/schema">Import schema →</a></div>
+      </div>
+      <div class="card">
+        <h2>Start from scratch (with AI)</h2>
+        <p>Describe your credential and target languages; we’ll draft the <code>schema</code> and <code>display[]</code> and let you refine.</p>
+        <div class="actions"><a class="btn" href="/attestation/generate/scratch">Start blank →</a></div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS & STANDARDS -->
+    <section class="block grid">
+      <div class="card">
+        <h2>How it works (at a glance)</h2>
+        <ol>
+          <li><strong>Choose a path</strong>: Issuer · Schema · From Scratch.</li>
+          <li><strong>Describe & localize</strong>: generate fields and <code>display[]</code> in your target languages.</li>
+          <li><strong>Review</strong> name/description for catalog clarity.</li>
+          <li><strong>Publish or keep private</strong> and reference the stable VCT URL when ready.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h2>Standards & interoperability</h2>
+        <ul>
+          <li><strong>VCT identifier (<code>vct</code>)</strong> names the credential type for SD-JWT VC.</li>
+          <li>Type metadata can include <strong>schema</strong> (validation), <strong>display metadata</strong> (rendering, multi-language), and <strong>claim metadata</strong> (selective disclosure hints).</li>
+          <li><strong>Retrieval</strong>: from a URL in <code>vct</code> or from a <strong>registry</strong>; optional integrity via <code>vct#integrity</code>.</li>
+          <li>JSON Schema (2020-12 recommended) for predictability.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- JSON EXAMPLE WITH SCROLLBAR -->
+    <section class="block grid">
+      <div class="card code-card">
+        <div class="code-toolbar">
+          <div class="label">VC Type Metadata example</div>
+          <button class="copy-btn" type="button" data-copy-target="#vct-json">Copy</button>
+        </div>
+<pre id="vct-json"><code>{
+  "vct": "https://vc-registry.com/vct/registry/publish/urn:example:vct:person",
+  "name": "Person Identity",
+  "description": "Person identity with core claims and localization",
+  "display": [
+    { "lang": "en", "name": "Person Identity", "description": "A basic person identity credential" },
+    { "lang": "fr", "name": "Identité Personne", "description": "Un justificatif d'identité de base" }
+  ],
+  "claims": [
+    {
+      "path": ["given_name"],
+      "display": [
+        { "lang": "en", "label": "Given name", "description": "First name" },
+        { "lang": "fr", "label": "Prénom" }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["family_name"],
+      "display": [
+        { "lang": "en", "label": "Family name", "description": "Last name" },
+        { "lang": "fr", "label": "Nom de famille" }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["birth_date"],
+      "display": [
+        { "lang": "en", "label": "Date of birth" },
+        { "lang": "fr", "label": "Date de naissance" }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["nationality"],
+      "display": [
+        { "lang": "en", "label": "Nationality" },
+        { "lang": "fr", "label": "Nationalité" }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["address"],
+      "display": [
+        { "lang": "en", "label": "Address" },
+        { "lang": "fr", "label": "Adresse" }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["address", "street_address"],
+      "display": [
+        { "lang": "en", "label": "Street address" },
+        { "lang": "fr", "label": "Rue" }
+      ],
+      "sd": "allowed",
+      "svg_id": "address_street_address"
+    },
+    {
+      "path": ["address", "locality"],
+      "display": [
+        { "lang": "en", "label": "City/Town" },
+        { "lang": "fr", "label": "Ville" }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["address", "postal_code"],
+      "display": [
+        { "lang": "en", "label": "Postal code" },
+        { "lang": "fr", "label": "Code postal" }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["address", "country"],
+      "display": [
+        { "lang": "en", "label": "Country" },
+        { "lang": "fr", "label": "Pays" }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["emails", null],
+      "display": [
+        { "lang": "en", "label": "Email" },
+        { "lang": "fr", "label": "E-mail" }
+      ],
+      "sd": "allowed"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "vct": { "type": "string", "description": "Verifiable Credential Type identifier (StringOrURI)" },
+      "given_name": { "type": "string", "description": "First name" },
+      "family_name": { "type": "string", "description": "Last name" },
+      "birth_date": { "type": "string", "format": "date" },
+      "nationality": { "type": "string", "description": "ISO 3166-1 alpha-2 country code" },
+      "address": {
+        "type": "object",
+        "properties": {
+          "street_address": { "type": "string" },
+          "locality": { "type": "string" },
+          "region": { "type": "string" },
+          "postal_code": { "type": "string" },
+          "country": { "type": "string" }
+        },
+        "required": ["country"]
+      },
+      "emails": {
+        "type": "array",
+        "items": { "type": "string", "format": "email" },
+        "minItems": 1
+      }
+    },
+    "required": ["vct", "given_name", "family_name", "birth_date"]
+  }
+}</code></pre>
+        <p class="muted">Scroll inside the box to see the full example. Use the “Copy” button to copy the JSON.</p>
+      </div>
+    </section>
+  </main>
+
+  {% include "footer.html" %}
+
+  <script>
+    // Copy-to-clipboard for the JSON example
+    (function(){
+      const btn = document.querySelector('.copy-btn');
+      const targetSel = btn ? btn.getAttribute('data-copy-target') : null;
+      if(btn && targetSel){
+        btn.addEventListener('click', () => {
+          const el = document.querySelector(targetSel);
+          if(!el) return;
+          const text = el.innerText;
+          navigator.clipboard.writeText(text).then(() => {
+            const old = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = old, 1200);
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

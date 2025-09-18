@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - CONNECTORS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2f4858;
+      --accent: #00a8cc;
+      --bg-light: #f4f4f9;
+      --bg-dark: #1e1e2f;
+      --text-dark: #1c1c1e;
+      --text-light: #eeeeee;
+    }
+    body {
+      margin: 0;
+      font-family: 'Orbitron', sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: white;
+      padding: 1.25rem 2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav a {
+      margin: 0 1rem;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .container {
+      max-width: 600px;
+      margin: 4rem auto;
+      padding: 2rem;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+    .disclaimer {
+      font-size: 0.95rem;
+      color: #777;
+      margin-bottom: 2rem;
+    }
+    .button {
+      display: block;
+      width: 100%;
+      margin: 1rem 0;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .google { background-color: #db4437; color: white; }
+    .github { background-color: #24292e; color: white; }
+    .wallet { background-color: var(--accent); color: white; }
+    .test { background-color: #807f7d; color: white; }
+    .note {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #aa0000;
+    }
+   
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong><a style="color: var(--primary); text-decoration: none;" href="/">VC-REGISTRY.COM</a></strong></div>
+    <nav>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flashes">
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+    <h1>{{title}}</h1>
+    <p class="disclaimer">
+      You can use an account using Google or GitHub for general access. <br>
+      However, <strong>only the Talao Wallet</strong> includes a full KYC process, enabling the use of <strong>Qualified Electronic Signatures (QES)</strong> under eIDAS.
+    </p>
+
+    <form action="/register/auth/google" method="post">
+      <button class="button google">Continue with Google</button>
+    </form>
+    <form action="/register/auth/github" method="post">
+      <button class="button github">Continue with GitHub</button>
+    </form>
+    <form action="/register/auth/wallet" method="post">
+      <button class="button wallet">Continue with a wallet</button>
+    </form>
+    {% if mode.myenv == "local" %}
+    <form action="/register/test" method="post">
+      <button class="button test">Test</button>
+    </form>
+    {% endif %}
+    <p class="note">
+    <!--  < <strong>Note:</strong> Google and GitHub registration <em>do not</em> authorize qualified signature features.> -->
+    </p>
+  </div>
+
+  {% include "footer.html" %}
+</body>
+</html>
