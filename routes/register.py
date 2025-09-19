@@ -21,11 +21,11 @@ except Exception:
 GOOGLE_CLIENT_ID = keys.get("google_client_id")
 GOOGLE_CLIENT_SECRET = keys.get("google_client_id")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
-GOOGLE_CALLBACK = ngrok + "/register/auth/google/callback"
+GOOGLE_CALLBACK = "https://vc-registry.com/register/auth/google/callback"
 
 GITHUB_CLIENT_ID = keys.get("github_clent_id")
 GITHUB_CLIENT_SECRET = keys.get("github_client_secret")
-GITHUB_CALLBACK = "https://8c7032575c41.ngrok.app/register/auth/github/callback"
+GITHUB_CALLBACK = "https://vc-registry.com/register/auth/github/callback"
 
 
 google_client = WebApplicationClient(GOOGLE_CLIENT_ID)
