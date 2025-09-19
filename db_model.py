@@ -96,9 +96,6 @@ class VCTRating(db.Model):
         CheckConstraint('stars BETWEEN 1 AND 5', name='ck_stars_range'),
     )
 
-
-
-
 class Signin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
@@ -124,7 +121,6 @@ class Signin(db.Model):
     log = db.Column(db.Boolean, default=False, nullable=False)
     test = db.Column(db.String(256), default="")
     dc_api = db.Column(db.Boolean, default=False, nullable=False)
-
 
 
 class Credential(db.Model):

@@ -10,14 +10,21 @@ from utils.kms import encrypt_json, decrypt_json
 
 ngrok =  "https://c8e7a2920835.ngrok.app"
 
+try:
+    with open('keys.json') as f:
+        keys = json.load(f)
+except Exception:
+    logging.error('Unable to load keys.json — file missing or corrupted.')
+    sys.exit(1)
+
 # OAuth clients (for Google & GitHub)
-GOOGLE_CLIENT_ID = "1051497623003-b937gbumq0567djr9pr9hfre3kch6dqq.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
+GOOGLE_CLIENT_ID = keys.get("google_client_id")
+GOOGLE_CLIENT_SECRET = keys.get("google_client_id")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 GOOGLE_CALLBACK = ngrok + "/register/auth/google/callback"
 
-GITHUB_CLIENT_ID = "Ov23li7S1OaU1rPkkTkQ"
-GITHUB_CLIENT_SECRET = "86fed8b14f95553d74185544fc4e9a412dbdbc83"
+GITHUB_CLIENT_ID = keys.get("github_clent_id")
+GITHUB_CLIENT_SECRET = keys.get("github_client_secret")
 GITHUB_CALLBACK = "https://8c7032575c41.ngrok.app/register/auth/github/callback"
 
 """
