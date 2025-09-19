@@ -86,11 +86,6 @@
     <p><strong>Email:</strong> {{ user.email }}</p>
     {% endif %}
     <p><strong>Country:</strong> {{ user.country }}</p>
-    {% if user.subscription != "free" %}
-    <p><strong>Vintegris Username:</strong> {{ user.qtsp_account()["username"] }}</p>
-    <p><strong>Vintegris Tenant ID:</strong> {{ user.qtsp_account()["tenant_id"] }}</p>
-    <p><strong>Vintegris Trusted App:</strong> {{ user.qtsp_account()["app_name"] }}</p>
-    {% endif %}
 
     <form method="POST" enctype="multipart/form-data">
       <label for="picture">Upload New Picture:</label>
