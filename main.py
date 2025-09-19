@@ -46,7 +46,7 @@ migrate = Migrate()
 def create_app() -> Flask:
     """Application factory: configure, wire dependencies, register routes/APIs."""
     # Base Flask app
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="static", static_url_path="/static")
     
     @app.get("/ping")
     def ping():
@@ -157,7 +157,7 @@ def create_app() -> Flask:
     @app.errorhandler(500)
     def error_500(e):
         try:
-            message.message("Error 500 on connectors", "thierry.thevenet@talao.io", str(e), mode)
+            message.message("Error 500 on vc-registry.com", "thierry.thevenet@talao.io", str(e), mode)
         except Exception as x:
             logging.warning("message() failed: %s", x)
         return redirect(mode.server + "/")

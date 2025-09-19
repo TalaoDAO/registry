@@ -49,7 +49,7 @@ class currentMode:
             #self.port = 4000
             self.sys_path = '/home/admin'
             self.server = 'https://vc-registry.com/'
-            #self.IP = '13.37.102.193'
+            self.IP = '13.37.102.196'
         elif self.myenv == 'local':
             # Configuration for local development
             self.sys_path = '/home/thierry'

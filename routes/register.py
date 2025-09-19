@@ -23,7 +23,7 @@ GOOGLE_CLIENT_SECRET = keys.get("google_client_id")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 GOOGLE_CALLBACK = "https://vc-registry.com/register/auth/google/callback"
 
-GITHUB_CLIENT_ID = keys.get("github_clent_id")
+GITHUB_CLIENT_ID = keys.get("github_client_id")
 GITHUB_CLIENT_SECRET = keys.get("github_client_secret")
 GITHUB_CALLBACK = "https://vc-registry.com/register/auth/github/callback"
 
@@ -52,6 +52,7 @@ def init_app(app, db):
 def register():
     mode = current_app.config["MODE"]
     return render_template("register.html", mode=mode, title="Register")
+
 
 def login_with_google():
     google_config = requests.get(GOOGLE_DISCOVERY_URL).json()
