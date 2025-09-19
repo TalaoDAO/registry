@@ -12,3 +12,5 @@ base58
 oauthlib
 pkce
 langchain-openai
+gunicorn
+gevent

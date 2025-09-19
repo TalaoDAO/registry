@@ -29,7 +29,7 @@
     }
 
     .actions { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
-    .actions .spacer { flex:1 1 auto; } /* pushes trailing buttons to the right */
+    .actions .spacer { flex:1 1 auto; }
 
     .primary-btn, .secondary-btn, .ghost-btn {
       appearance:none; border:none; cursor:pointer; text-decoration:none;
@@ -74,6 +74,31 @@
     .step-title{font-weight:700}
     .step-hint{font-size:.85rem;color:var(--subtext)}
 
+    /* ===== Upload Success Modal ===== */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:60; }
+    .modal { width:min(640px, calc(100vw - 2rem)); background:#fff; border-radius:14px; border:1px solid var(--border); box-shadow:0 20px 60px rgba(0,0,0,.35); }
+    .modal header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:#fff; }
+    .modal h3 { margin:0; font-size:1.05rem; }
+    .modal .body { padding:1rem 1.25rem; display:grid; gap:.75rem; }
+    .field { display:grid; gap:.35rem; }
+    .copy-row { display:flex; gap:.5rem; align-items:center; }
+    .copy-row input { flex:1; }
+    .modal footer {
+      padding:1rem 1.25rem;
+      display:flex;
+      gap:.5rem;
+      justify-content:flex-end;
+      align-items:center;
+      flex-wrap: wrap;               /* allow wrap so buttons don't get cut */
+      border-top:1px solid var(--border);
+    }
+    .modal footer a,
+    .modal footer button { max-width: 100%; }
+    @media (max-width: 420px) {
+      .modal footer { justify-content:stretch; }
+      .modal footer a, .modal footer button { width:100%; }
+    }
+
     @media (prefers-color-scheme: dark) {
       :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
       input[type="text"], input[type="url"], select { background:#151617; color:#e8eaed; }
@@ -81,6 +106,9 @@
       .ghost-btn { color:#cbd5e1; border-color:#334155; }
       header{ background:#141618; }
       .step{background:#1b1d20}
+      .modal { background:#141618; }
+      .modal header { background:#141618; border-color:#2a2a2a; }
+      .modal footer { border-color:#2a2a2a; }
     }
   </style>
 </head>
@@ -163,7 +191,7 @@
               <button type="button" class="secondary-btn" id="load-configs-btn" aria-controls="config_id">Load configurations</button>
               <span id="config-count" class="inline-status"></span>
             </div>
-            <select id="config_id" name="config_id" required class="hidden" aria-live="polite"></select>
+            <select id="config_id" name="config_id" required class="hidden" aria-live="polite" disabled></select>
             <div id="config-status" class="inline-status"></div>
           </div>
 
@@ -185,13 +213,14 @@
           <!-- Step 4 -->
           <div class="row" id="meta-row" aria-disabled="true">
             <label for="name">VCT name</label>
-            <input id="name" name="name" type="text" placeholder="Work ID" value="{{ name or '' }}">
+            <input id="name" name="name" type="text" placeholder="Short name (required for upload)" value="{{ name or '' }}">
+
             <label for="description">VCT description</label>
-            <input id="description" name="description" type="text" placeholder="Short description (required for upload)">
+            <input id="description" name="description" type="text" placeholder="Description (required for upload)">
           </div>
 
           <div class="actions">
-            <button type="submit" class="primary-btn" id="generate-btn" disabled>Generate metadata</button>
+            <button type="submit" class="primary-btn" id="generate-btn" disabled>Generate VC Type</button>
 
             <span class="spacer" aria-hidden="true"></span>
 
@@ -216,6 +245,45 @@
     <div style="display:flex; flex-direction:column; align-items:center; gap:.75rem;">
       <div class="spinner" aria-hidden="true"></div>
       <div style="font-family: ui-monospace, Menlo, Consolas, monospace;">Working…</div>
+    </div>
+  </div>
+
+  <!-- ===== UPLOAD SUCCESS MODAL ===== -->
+  <div class="modal-backdrop" id="upload-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title" aria-hidden="true">
+    <div class="modal">
+      <header>
+        <h3 id="upload-modal-title">VCT published to Registry</h3>
+        <button type="button" class="ghost-btn" id="upload-modal-close" aria-label="Close">Close</button>
+      </header>
+      <div class="body">
+        <p class="note">Share these values with implementers. They’re also embedded in the response headers of public downloads.</p>
+        <div class="field">
+          <label for="modal-vct-url">VCT URL</label>
+          <div class="copy-row">
+            <input id="modal-vct-url" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-vct-url">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modal-integrity">Integrity (SRI)</label>
+          <div class="copy-row">
+            <input id="modal-integrity" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-integrity">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modal-urn">VCT URN (hash id)</label>
+          <div class="copy-row">
+            <input id="modal-urn" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-urn">Copy</button>
+          </div>
+        </div>
+      </div>
+      <footer>
+        <button type="button" class="primary-btn" id="upload-modal-open">Open VCT</button>
+        <button type="button" class="primary-btn" id="upload-modal-ok">Done</button>
+       
+      </footer>
     </div>
   </div>
 
@@ -256,6 +324,15 @@
     const statusEl = document.getElementById('status');
     const editorMsg = document.getElementById('editor-msg');
 
+    // Modal elements
+    const modalBackdrop = document.getElementById('upload-modal-backdrop');
+    const modalClose = document.getElementById('upload-modal-close');
+    const modalOk = document.getElementById('upload-modal-ok');
+    const modalOpenLink = document.getElementById('upload-modal-open');
+    const modalVctUrl = document.getElementById('modal-vct-url');
+    const modalIntegrity = document.getElementById('modal-integrity');
+    const modalUrn = document.getElementById('modal-urn');
+
     let serverJsonText = '';
     let lastBlobUrl = null;
     let lastFilename = null;
@@ -277,6 +354,47 @@
       const vct = String(obj.vct || '').split(/[/:]/).pop() || '';
       return vct || 'vc_type';
     }
+
+    // Modal helpers
+    function showModal(){ modalBackdrop.style.display = 'flex'; modalBackdrop.setAttribute('aria-hidden','false'); }
+    function hideModal(){ modalBackdrop.style.display = 'none'; modalBackdrop.setAttribute('aria-hidden','true'); }
+    [modalClose, modalOk].forEach(btn => btn.addEventListener('click', hideModal));
+    modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) hideModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideModal(); });
+
+    modalOpenLink.addEventListener('click', () => {
+      const url = modalVctUrl.value.trim();
+      if (url) window.open(url, '_blank', 'noopener');
+    });
+
+    // Copy buttons inside modal
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-copy]');
+      if (!btn) return;
+      const sel = btn.getAttribute('data-copy');
+      const inp = document.querySelector(sel);
+      if (!inp) return;
+      try {
+        await navigator.clipboard.writeText(inp.value || '');
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => btn.textContent = 'Copy', 1200);
+      } catch {
+        inp.select();
+      }
+    });
+
+    // Keep preview JSON in sync when the user edits Name/Description after generation
+    function updatePreviewField(key, value) {
+      if (editorWrap.style.display === 'none') return;
+      try {
+        const obj = JSON.parse(getEditorText());
+        if (value && value.trim()) obj[key] = value.trim();
+        else delete obj[key];
+        setEditorText(JSON.stringify(obj, null, 2));
+      } catch { /* ignore while typing */ }
+    }
+    nameInput.addEventListener('input', () => updatePreviewField('name', nameInput.value));
+    descriptionInput.addEventListener('input', () => updatePreviewField('description', descriptionInput.value));
 
     // Step 1 → 2 gating
     issuerInput.addEventListener('input', () => {
@@ -307,7 +425,11 @@
         const frag = document.createDocumentFragment();
         items.forEach((it, i) => {
           const opt = document.createElement('option');
-          const label = [it.name || it.id || `config ${i+1}`, it.vct?`(${it.vct})`:null].filter(Boolean).join(' ');
+          const label = [
+            it.name || it.id || `config ${i+1}`,
+            it.format ? `[${it.format}]` : null,
+            it.vct ? `(${it.vct})` : null
+          ].filter(Boolean).join(' ');
           opt.value = String(it.id || label);
           opt.textContent = label;
           if (it.vct) opt.dataset.vct = it.vct;
@@ -315,6 +437,14 @@
         });
         configSelect.appendChild(frag);
         configSelect.classList.remove('hidden');
+        configSelect.disabled = false;
+
+        // Auto-select first option + dispatch change (fixes Step 2→3)
+        if (configSelect.options.length > 0) {
+          configSelect.selectedIndex = 0;
+          configSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
         ok(configCount, `Found ${items.length}`);
         ok(configStatus, 'Choose a configuration to continue.');
         setStep(s2, 'done'); setStep(s3, 'active');
@@ -362,11 +492,17 @@
         const t = await r.text(); if (!r.ok) throw new Error(t || 'Server error');
         const obj = JSON.parse(t);
 
-        // Prefill name/description if available
+        // Prefill name/description from display[]/schema when empty
         const disp = Array.isArray(obj.display) ? obj.display : [];
         const en = disp.find(d => (d && String(d.lang||'').toLowerCase().startsWith('en'))) || disp[0] || {};
         if (!nameInput.value.trim()) nameInput.value = obj.name || en.name || (obj.schema && obj.schema.title) || guessNameFromVct(obj);
         if (!descriptionInput.value.trim()) descriptionInput.value = obj.description || en.description || (obj.schema && obj.schema.description) || '';
+
+        // Merge Step-4 inputs into preview before showing it
+        const nm = nameInput.value.trim();
+        const ds = descriptionInput.value.trim();
+        if (nm) obj.name = nm;
+        if (ds) obj.description = ds;
 
         const pretty = JSON.stringify(obj, null, 2);
         serverJsonText = pretty;
@@ -433,8 +569,17 @@
         const data = await r.json().catch(()=>({}));
         if (!r.ok) throw new Error(data.error || 'Upload failed');
         statusEl.textContent = 'Uploaded and published ✓'; statusEl.className='inline-status ok';
-        // Optional: if API returns an id or url, show a link to view it.
-        // if (data.id) { /* add view link */ }
+
+        // Show success modal with copyable values
+        modalVctUrl.value = data.vct || '';
+        modalIntegrity.value = data.integrity || '';
+        modalUrn.value = data.vct_urn || '';
+        if (data.vct) {
+          modalOpenLink.href = data.vct;
+        } else {
+          modalOpenLink.removeAttribute('href');
+        }
+        showModal();
       }catch(e){
         console.error(e);
         statusEl.textContent = e.message || 'Upload failed'; statusEl.className='inline-status err';

@@ -74,6 +74,7 @@ def _compute_home_stats():
                 lang_counts[code] = lang_counts.get(code, 0) + 1
     
     top_langs = sorted(lang_counts.items(), key=lambda kv: kv[1], reverse=True)[:5]
+    total_all = db.session.query(func.count(VCTRegistry.id)).scalar() or 0
 
     return {
         "total_public": int(total_public),
@@ -82,11 +83,13 @@ def _compute_home_stats():
         "avg_rating": avg_rating,
         "top_vcts": top_vcts,   # <<— list of up to 3
         "top_langs": top_langs,
+        "total_all": total_all,
     }
 
 
 def home():
     stats = _compute_home_stats()
+    
     return render_template("home.html", user=current_user, stats=stats)
 
 

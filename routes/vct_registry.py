@@ -57,6 +57,7 @@ def _build_llm_client(cfg: Optional[LLMConfig]):
         if not api_key:
             return None
         return ChatOpenAI(api_key=api_key, model=cfg.model, temperature=cfg.temperature)
+    """
     if cfg.provider == "gemini":
         if ChatGoogleGenerativeAI is None:
             return None
@@ -65,6 +66,7 @@ def _build_llm_client(cfg: Optional[LLMConfig]):
             return None
         return ChatGoogleGenerativeAI(google_api_key=api_key, model=cfg.model, temperature=cfg.temperature)
     return None
+    """
 
 def _ensure_llm(cfg: Optional[LLMConfig], *, use_llm: bool, phase: str):
     if not use_llm:
@@ -90,6 +92,8 @@ def _invoke_llm_json(client: Any, system_text: str, user_payload: Any, *, phase:
     except Exception as e:
         logger.warning("LLM %s invocation failed: %s", phase, e)
         return None
+
+
 
 # ----------------------------------------------------------------------------
 # Page + API wiring
@@ -123,7 +127,6 @@ def vct_registry_page():
     return render_template("vct_registry.html", user=current_user)  # keep user available to the template  :contentReference[oaicite:2]{index=2}
 
 
-@login_required
 def vct_registry_browse():
     return render_template("vct_registry_browse.html", user=current_user)  # keep user available to the template  :contentReference[oaicite:2]{index=2}
 
@@ -266,11 +269,13 @@ def _rating_payload(row: VCTRegistry, *, user_id: Optional[int]) -> Dict[str, An
     }
 
 # ----- APIs ---------------------------------------------------------------
-@login_required
 def api_vct_list():
     # optional filters via query params, matching ai_search semantics
-    scope = (request.args.get("scope") or "public").lower()  # public | my | all
+    requested_scope = (request.args.get("scope") or "public").lower()  # public | my | all
     q = (request.args.get("q") or "").strip()
+    is_auth = getattr(current_user, "is_authenticated", False)
+    scope = requested_scope if is_auth else "public"
+
 
     # 1) define the base query
     query = VCTRegistry.query
@@ -293,7 +298,7 @@ def api_vct_list():
         )
 
     # 3) fetch rows
-    rows = query.order_by(VCTRegistry.updated_at.desc()).all()
+    rows = query.order_by(VCTRegistry.created_at.desc()).all()
 
     def _pop_score(r: VCTRegistry) -> float:
         # popularity-only score for the plain list endpoint
@@ -320,7 +325,7 @@ def api_vct_list():
             "created_at": (r.created_at.isoformat() if r.created_at else None),
             "updated_at": (r.updated_at.isoformat() if r.updated_at else None),
         }
-        base.update(_rating_payload(r, user_id=current_user.id))
+        base.update(_rating_payload(r, user_id=(current_user.id if is_auth else None)))
         base.update({"score": _pop_score(r)})  # local popularity-only score
         return base
 
@@ -346,9 +351,12 @@ def api_vct_upload():
     except Exception as e:
         return jsonify({"error": f"Invalid JSON: {e}"}), 400
 
+    # In the registry vct is built from the sha256 hash of the vct original value
     vct_urn = (vct_json.get("vct") or "").strip()
     if not vct_urn:
         return jsonify({"error": "Missing 'vct' in the JSON document"}), 400
+    vct_urn_hashed = hashlib.sha256(vct_urn.encode()).digest()
+    vct_urn = base64.urlsafe_b64encode(vct_urn_hashed).decode("ascii").rstrip('=')
     
     # build vct for publishing and update vct in the registry
     mode = current_app.config["MODE"]
@@ -385,8 +393,15 @@ def api_vct_upload():
     )
     db.session.add(row)
     db.session.commit()
-
-    return jsonify({"ok": True, "id": row.id, "integrity": integrity, "name": name, "is_public": row.is_public})
+    return jsonify({
+        "ok": True,
+        "id": row.id,
+        "integrity": integrity,
+        "vct": row.vct,
+        "vct_urn": row.vct_urn,
+        "name": name,
+        "is_public": row.is_public
+    })
 
 @login_required
 def api_vct_delete(row_id: int):
@@ -411,12 +426,11 @@ def api_vct_visibility(row_id: int):
     db.session.commit()
     return jsonify({"ok": True, "is_public": row.is_public})
 
-@login_required
 def api_vct_download(row_id: int):
     row = VCTRegistry.query.filter_by(id=row_id).first()
     if not row:
         return jsonify({"error": "Not found"}), 404
-    if not row.is_public and row.user_id != current_user.id:
+    if not row.is_public and (getattr(current_user, "id", None) != row.user_id):
         return jsonify({"error": "Forbidden"}), 403
 
     try:
@@ -432,12 +446,11 @@ def api_vct_download(row_id: int):
     resp.headers["X-Integrity"] = row.integrity
     return resp
 
-@login_required
 def api_vct_download_schema(row_id: int):
     row = VCTRegistry.query.filter_by(id=row_id).first()
     if not row:
         return jsonify({"error": "Not found"}), 404
-    if not row.is_public and row.user_id != current_user.id:
+    if not row.is_public and (getattr(current_user, "id", None) != row.user_id):
         return jsonify({"error": "Forbidden"}), 403
 
     try:
@@ -495,14 +508,15 @@ def api_vct_rate(row_id: int):
     payload = _rating_payload(row, user_id=current_user.id)
     return jsonify({"ok": True, **payload})
 
-@login_required
 def api_vct_ai_search():
     try:
         body = request.get_json(force=True) or {}
     except Exception:
         body = {}
     q = (body.get("q") or "").strip()
-    scope = (body.get("scope") or "public").lower()
+    requested_scope = (body.get("scope") or "public").lower()
+    is_auth = getattr(current_user, "is_authenticated", False)
+    scope = requested_scope if is_auth else "public"
     top_k = max(1, min(int(body.get("top_k") or 10), 50))
 
     query = VCTRegistry.query
@@ -614,7 +628,7 @@ def api_vct_ai_search():
             "created_at": (r.created_at.isoformat() if r.created_at else None),
             "updated_at": (r.updated_at.isoformat() if r.updated_at else None),
         }
-        base.update(_rating_payload(r, user_id=current_user.id))
+        base.update(_rating_payload(r, user_id=(current_user.id if is_auth else None)))
         if r.id in reasons:
             base.update({"score": reasons[r.id].get("score"), "reason": reasons[r.id].get("reason")})
         else:

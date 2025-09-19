@@ -15,6 +15,8 @@
 #   • supports both `credentials_supported` (older) and
 #     `credential_configurations_supported` (newer) containers
 #   • recognizes current SD-JWT VC format id `dc+sd-jwt` and legacy aliases
+#   • NEW: honors `credential_metadata.display` and `credential_metadata.claims`
+#           as fallbacks per draft-16/17+ when top-level keys are absent.
 #
 # Output:
 # - Dict with at least: vct, display[], schema{type,properties,required?}, claims[].
@@ -83,250 +85,116 @@ def _http_get_json(url: str, *, timeout: float = 8.0) -> Any:
     return json.loads(r.text)
 
 
-def _objectify_credentials_supported(raw: Any) -> Dict[str, Any]:
+def _objectify_credentials_supported(lst: Iterable[Any]) -> Dict[str, Any]:
     """
-    Normalize older list-shaped credentials_supported into a mapping.
+    Older drafts allowed a list for credentials_supported; normalize to a dict.
     """
-    if isinstance(raw, dict):
-        return dict(raw)
     out: Dict[str, Any] = {}
-    if isinstance(raw, list):
-        for i, item in enumerate(raw):
-            if not isinstance(item, dict):
-                continue
-            cid = str(
-                item.get("id")
-                or item.get("type")
-                or item.get("vct")
-                or item.get("format")
-                or f"cfg-{i}"
-            )
-            out[cid] = item
-    return out
-
-
-def _normalize_display(display: Any) -> List[Dict[str, Any]]:
-    """
-    Normalize type-level display to [{lang?, name?, description?}, ...].
-    """
-    if not display:
-        return []
-    if isinstance(display, dict):
-        display = [display]
-    out: List[Dict[str, Any]] = []
-    for d in display or []:
-        if not isinstance(d, Mapping):
-            continue
-        lang = d.get("lang") or d.get("language") or d.get("locale")
-        name = d.get("name") or d.get("title")
-        desc = d.get("description") or d.get("desc")
-        entry: Dict[str, Any] = {}
-        if lang:
-            entry["lang"] = str(lang)
-        if name:
-            entry["name"] = str(name)
-        if desc:
-            entry["description"] = str(desc)
-        if entry:
-            out.append(entry)
+    for i, item in enumerate(lst or []):
+        if isinstance(item, Mapping):
+            key = str(item.get("id") or item.get("type") or item.get("vct") or i)
+            out[key] = dict(item)
     return out
 
 
 # -----------------------------------------------------------------------------
-# JSON Pointer resolution (RFC 6901) and helpers (no credentialSubject logic)
+# JSON pointer utilities
 # -----------------------------------------------------------------------------
-
-def _json_pointer_get(doc: Any, pointer: str) -> Any:
-    """
-    Minimal RFC6901 resolver for local pointers (starting with '#/' or '/').
-    Supports ~0 -> '~' and ~1 -> '/' unescaping. Returns None on miss.
-    """
-    if not isinstance(pointer, str):
-        return None
-    if pointer.startswith("#"):
-        pointer = pointer[1:]
-    if pointer == "":
-        return doc
-    if not pointer.startswith("/"):
-        return None
-
-    def _unescape(token: str) -> str:
-        return token.replace("~1", "/").replace("~0", "~")
-
-    cur = doc
-    for raw in pointer.split("/")[1:]:
-        key = _unescape(raw)
-        if isinstance(cur, list):
-            try:
-                idx = int(key)
-            except ValueError:
-                return None
-            if idx < 0 or idx >= len(cur):
-                return None
-            cur = cur[idx]
-        elif isinstance(cur, dict):
-            if key not in cur:
-                return None
-            cur = cur[key]
-        else:
-            return None
-    return cur
-
-
-def _deref_local_ref(node: Any, root: Mapping[str, Any], *, max_depth: int = 12) -> Any:
-    """
-    If node is {'$ref': '#/...'}, return the referenced object.
-    Follows up to max_depth to avoid cycles. Non-local or invalid refs are ignored.
-    """
-    cur = node
-    depth = 0
-    while isinstance(cur, dict) and "$ref" in cur and depth < max_depth:
-        ref = cur.get("$ref")
-        if not isinstance(ref, str) or not ref.startswith("#"):
-            break
-        target = _json_pointer_get(root, ref)
-        if target is None:
-            break
-        cur = target
-        depth += 1
-    return cur
-
 
 def _pointer_to_path(ptr: str) -> List[str]:
     """
-    Convert a JSON Pointer into a list path (no special trimming).
+    Minimal JSON Pointer to array-of-segments. Supports "#/a/b" or "/a/b".
     """
-    if not isinstance(ptr, str):
-        return []
-    if ptr.startswith("#"):
-        ptr = ptr[1:]
-    if not ptr.startswith("/"):
-        return []
-    def _unescape(t: str) -> str:
-        return t.replace("~1", "/").replace("~0", "~")
-    return [_unescape(p) for p in ptr.split("/")[1:]]
+    p = ptr[1:] if ptr.startswith("/") else (ptr[2:] if ptr.startswith("#/") else ptr)
+    return [seg.replace("~1", "/").replace("~0", "~") for seg in p.split("/") if seg != ""]
 
 
-def _merge_props(dst: Dict[str, Any], src: Any):
-    """Shallow-merge JSON Schema properties into dst."""
-    if isinstance(src, Mapping):
-        for k, v in src.items():
-            if isinstance(k, str):
-                if isinstance(v, Mapping):
-                    dst.setdefault(k, dict(v))
-                else:
-                    dst.setdefault(k, {"type": "string"})
+# -----------------------------------------------------------------------------
+# Schema expansion (best-effort)
+# -----------------------------------------------------------------------------
 
-
-def _expand_schema(node: Any, root: Mapping[str, Any], *, max_depth: int = 16) -> Tuple[Dict[str, Any], List[str]]:
+def _expand_schema(schema_node: Any, cfg: Mapping[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
     """
-    Resolve a schema node into (properties, required) with local $ref and common combinators.
-    Handles dict or string pointer node; $ref (local); allOf/oneOf/anyOf; properties/required.
-    NOTE: Most issuers won't give us a schema (draft ≥15), so this is a best-effort
-    for cases where they still do. It is NOT required for normal operation.
+    Best-effort schema expansion:
+      - if it's a URL, try to fetch; if it's an object, try to read properties/required.
+    Returns (properties, required[]).
     """
     props: Dict[str, Any] = {}
-    req: List[str] = []
+    required: List[str] = []
+    if isinstance(schema_node, Mapping):
+        props = dict(schema_node.get("properties") or {})
+        rq = schema_node.get("required")
+        if isinstance(rq, list):
+            required = [str(x) for x in rq if isinstance(x, (str, int))]
+    elif isinstance(schema_node, str) and schema_node.strip():
+        try:
+            s = _http_get_json(schema_node.strip())
+            if isinstance(s, Mapping):
+                props = dict(s.get("properties") or {})
+                rq = s.get("required")
+                if isinstance(rq, list):
+                    required = [str(x) for x in rq if isinstance(x, (str, int))]
+        except Exception:
+            pass
+    return props, required
 
-    def walk(n: Any, depth: int = 0):
-        if depth > max_depth or n is None:
-            return
-        # string pointer to a schema
-        if isinstance(n, str):
-            if n.startswith("#") or n.startswith("/"):
-                t = _json_pointer_get(root, n)
-                walk(t, depth + 1)
-            return
-        # follow local $ref
-        if isinstance(n, Mapping) and "$ref" in n:
-            t = _deref_local_ref(n, root)
-            walk(t, depth + 1)
-            return
-        if not isinstance(n, Mapping):
-            return
 
-        # combinators
-        for key in ("allOf", "oneOf", "anyOf"):
-            if isinstance(n.get(key), list):
-                for item in n[key]:
-                    walk(item, depth + 1)
-
-        # properties / required
-        _merge_props(props, n.get("properties"))
-        r = n.get("required")
-        if isinstance(r, list):
-            for x in r:
-                if isinstance(x, str) and x not in req:
-                    req.append(x)
-
-        # arrays: bubble up item properties for discovery
-        if n.get("type") == "array" and isinstance(n.get("items"), Mapping):
-            items = n["items"]
-            if "properties" in items or "required" in items or "$ref" in items:
-                walk(items, depth + 1)
-
-    walk(node, 0)
-    return props, req
+def _merge_props(props: Dict[str, Any], more: Optional[Dict[str, Any]]) -> None:
+    if not isinstance(more, Mapping):
+        return
+    for k, v in more.items():
+        if k not in props and isinstance(v, Mapping):
+            props[k] = {"type": str(v.get("type") or "string")}
+        elif isinstance(v, Mapping):
+            props[k].update(v)
 
 
 # -----------------------------------------------------------------------------
-# Claims metadata helpers (no credentialSubject assumptions)
+# Claims helpers
 # -----------------------------------------------------------------------------
 
-DESCRIPTOR_KEYS = {
-    "description",
-    "label",
-    "display",
-    "mandatory",
-    "required",
-    "locale",
-    "lang",
-    "language",
-    "format",
-    "type",
-    "pattern",
-    "enum",
-    "title",
-    "examples",
-    "default",
-}
+DESCRIPTOR_KEYS = {"label", "name", "title", "description", "lang", "language", "locale", "display", "mandatory", "required", "svg_id", "format", "hint"}
 
-
-def _claims_md_from_claims_map(desc_map: Mapping[str, Any], base_path: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+def _claims_md_from_claims_map(claims_map: Mapping[str, Any], *, base_path: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """
-    Convert an issuer's nested claims map into flat claim metadata entries.
-    Each output entry: {"path": [...], "display": [...], "sd": "allowed"}.
+    Normalize "claims" in map form into claims_md[] (with display[] synthesized).
     """
     out: List[Dict[str, Any]] = []
-    base_path = base_path or []
-
-    for key, desc in (desc_map or {}).items():
+    for key, desc in (claims_map or {}).items():
         if not isinstance(key, str):
             continue
-        path = base_path + [key]
+        path = (base_path or []) + [key]
         disp: List[Dict[str, Any]] = []
 
         if isinstance(desc, Mapping):
-            if isinstance(desc.get("display"), list):
-                for d in desc["display"]:
-                    if not isinstance(d, Mapping):
-                        continue
-                    entry: Dict[str, Any] = {}
-                    lang = d.get("lang") or d.get("language") or d.get("locale")
-                    label = d.get("label") or d.get("name") or d.get("title")
-                    description = d.get("description")
-                    if lang:
-                        entry["lang"] = str(lang)
+            # Collect per-language labels/descriptions if present
+            for lang_key in ("display", "labels", "display_metadata"):
+                d = desc.get(lang_key)
+                if isinstance(d, list):
+                    for entry in d:
+                        if not isinstance(entry, Mapping):
+                            continue
+                        entry = dict(entry)
+                        lang = entry.get("lang") or entry.get("language") or entry.get("locale")
+                        label = entry.get("label") or entry.get("name") or entry.get("title")
+                        description = entry.get("description")
+                        if lang:
+                            entry["lang"] = str(lang)
+                        if label:
+                            entry["label"] = str(label)
+                        if description:
+                            entry["description"] = str(description)
+                        # keep only normalized keys in entry
+                        pruned = {}
+                        for k in ("lang", "label", "description"):
+                            if entry.get(k):
+                                pruned[k] = entry[k]
+                        if pruned:
+                            disp.append(pruned)
+                else:
+                    label = desc.get("label") or desc.get("name") or desc.get("title")
                     if label:
-                        entry["label"] = str(label)
-                    if description:
-                        entry["description"] = str(description)
-                    if entry:
-                        disp.append(entry)
-            else:
-                label = desc.get("label") or desc.get("name") or desc.get("title")
-                if label:
-                    disp.append({"label": str(label)})
+                        disp.append({"label": str(label)})
 
             # Recurse into nested maps that are not descriptor keys
             for k, v in desc.items():
@@ -372,6 +240,8 @@ def _schema_and_claims_from_cfg(cfg: Dict[str, Any]) -> Tuple[Dict[str, Any], Li
          recognizing JSON Pointer claim paths (string pointers), and
          mark required if issuer flags mandatory/required.
       3) Else derive from cfg["claims_descriptions"].
+      4) NEW: When 2/3 are absent, fall back to cfg["credential_metadata"].get("claims")
+             per OIDC4VCI draft-16/17+.
     """
     props: Dict[str, Any] = {}
     required: List[str] = []
@@ -387,12 +257,14 @@ def _schema_and_claims_from_cfg(cfg: Dict[str, Any]) -> Tuple[Dict[str, Any], Li
                 required.append(x)
 
     # 2) Claims → claims_md and ALWAYS synthesize properties from each claim leaf
+    meta = cfg.get("credential_metadata") or {}  # ### NEW: draft-16/17 fallback
     cl = cfg.get("claims")
+    if cl is None:
+        cl = meta.get("claims")  # ### NEW
 
     if isinstance(cl, dict):
         # map style, e.g. {"given_name": {...}}
         claims_md.extend(_claims_md_from_claims_map(cl))
-        # ALWAYS merge keys from the map into properties (not only when props empty)
         for name, desc in cl.items():
             if isinstance(name, str):
                 props.setdefault(name, {"type": "string"})
@@ -428,18 +300,20 @@ def _schema_and_claims_from_cfg(cfg: Dict[str, Any]) -> Tuple[Dict[str, Any], Li
                     out_e[k] = entry[k]
             claims_md.append(out_e)
 
-            # ALWAYS add leaf into properties (this fixes "only one property" bug)
+            # ALWAYS add leaf into properties
             if norm_path:
                 leaf = str(norm_path[-1])
                 if leaf not in props:
                     props[leaf] = {"type": "string"}
-                # Check mandatory/required flags on the entry
                 if entry.get("mandatory") or entry.get("required"):
                     if leaf not in required:
                         required.append(leaf)
 
     # 3) claims_descriptions → synthesize remaining if still nothing
     cds = cfg.get("claims_descriptions")
+    if not cds:
+        # Some issuers expose "claims" array only under credential_metadata (issuer-metadata flavor)
+        cds = meta.get("claims")  # ### NEW: treat as claims_descriptions if needed
     if isinstance(cds, list) and cds:
         sch2 = _schema_from_claims_descriptions(cds)
         _merge_props(props, sch2.get("properties"))
@@ -542,7 +416,14 @@ def generate_vc_type_metadata_from_issuer(
 
     # 4) Type identifier / display
     issuer_vct = chosen.get("vct") or chosen.get("type") or chosen_id or vct
-    display = _normalize_display(chosen.get("display") or [])
+
+    # ### NEW / CHANGED: prefer top-level display, fall back to credential_metadata.display
+    cm = chosen.get("credential_metadata") or {}
+    raw_display = chosen.get("display")
+    if raw_display is None:
+        raw_display = cm.get("display")  # draft-16/17 fallback
+
+    display = _normalize_display(raw_display or [])
     if languages:
         langs_norm = {l.split("-")[0].lower() for l in languages}
         pref = [d for d in display if str(d.get("lang", "")).split("-")[0].lower() in langs_norm]
@@ -582,34 +463,32 @@ def generate_vc_type_metadata_from_issuer(
 
 
 # -----------------------------------------------------------------------------
-# CLI for quick testing
+# Display normalization
 # -----------------------------------------------------------------------------
 
-if __name__ == "__main__":
-    import argparse, sys
-
-    p = argparse.ArgumentParser(description="Build VCT metadata from an issuer (OIDC4VCI, SD-JWT VC).")
-    p.add_argument("issuer", help="Issuer base URL or issuer metadata URL")
-    p.add_argument("--vct", default="urn:example:vct:unknown", help="Fallback VCT identifier")
-    p.add_argument("--config-id", help="Explicit configuration id/name/type/vct to select")
-    p.add_argument("--match-vct", help="Pick config whose vct equals this value")
-    p.add_argument("--timeout", type=float, default=8.0)
-    p.add_argument("--languages", nargs="*", help="Preferred display languages (e.g., en fr de)")
-    p.add_argument("--remote-policy", choices=["extends", "import"], default="extends", help="If issuer references a remote VCT")
-    args = p.parse_args()
-
-    try:
-        doc = generate_vc_type_metadata_from_issuer(
-            args.issuer,
-            vct=args.vct,
-            on_remote_vct=args.remote_policy,
-            languages=args.languages,
-            timeout=args.timeout,
-            config_id=args.config_id,
-            vct_match=args.match_vct,
-        )
-        json.dump(doc, sys.stdout, indent=2, ensure_ascii=False)
-        print()
-    except Exception as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        sys.exit(1)
+def _normalize_display(raw: Any) -> List[Dict[str, Any]]:
+    """
+    Accepts list|dict|None and returns a list of {lang?, label/name?, description?}.
+    Normalizes `language`/`locale`→`lang`, `name/title`→`label`.
+    """
+    if raw is None:
+        return []
+    if isinstance(raw, Mapping):
+        raw = [raw]
+    out: List[Dict[str, Any]] = []
+    for d in raw or []:
+        if not isinstance(d, Mapping):
+            continue
+        lang = d.get("lang") or d.get("language") or d.get("locale")
+        label = d.get("label") or d.get("name") or d.get("title")
+        desc = d.get("description")
+        entry: Dict[str, Any] = {}
+        if lang:
+            entry["lang"] = str(lang)
+        if label:
+            entry["label"] = str(label)
+        if desc:
+            entry["description"] = str(desc)
+        if entry:
+            out.append(entry)
+    return out

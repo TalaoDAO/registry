@@ -108,7 +108,7 @@
   </header>
 
   <main class="section">
-    <h1 style="text-align:center; margin:0 0 .5rem 0;">Browse the registry</h1>
+    <h1 style="text-align:center; margin:0 0 .5rem 0;">Browse the Registry</h1>
     <p class="note" style="text-align:center; margin:0 0 1.25rem 0;">
       Upload a <code>.json</code> VCT Type Metadata file. We’ll compute its <strong>sha256</strong> integrity and store it. You can optionally publish it to the public catalog.
     </p>
@@ -126,9 +126,7 @@
         <div class="toolbar">
           <div class="left">
             <select id="scope">
-              <option value="my">My VCTs</option>
-              <option value="public">Public Catalog</option>
-              <option selected value="all">All</option>
+              <option selected value="public">Public Catalog</option>
             </select>
             <input type="text" id="search" placeholder="Search by keywords… e.g. address, birthdate, diploma" />
             <label class="switch"><input type="checkbox" id="ai-toggle"> Use AI search</label>
@@ -148,13 +146,12 @@
                 <th style="width:32rem;">Description</th>
                 <th style="width:10rem;">Languages</th>
                 <th style="width:14rem;">Popularity</th>
-                <th style="width:7rem;">Visible</th>
                 <th style="width:28rem;">Actions</th>
               </tr>
             </thead>
 
             <tbody id="rows">
-              <tr id="empty-row"><td colspan="6" class="note" style="padding:1rem;">No entries yet.</td></tr>
+              <tr id="empty-row"><td colspan="5" class="note" style="padding:1rem;">No entries yet.</td></tr>
             </tbody>
           </table>
         </div>
@@ -353,11 +350,15 @@
       data.forEach(item => {
         const tr = document.createElement('tr');
 
+        // Name
         const tdName = document.createElement('td'); 
         tdName.innerHTML = `<a href="${item.vct}" target="_blank" rel="noopener" class="mono" title="${item.name}">${item.name}</a>`;
-        const tdDescription = document.createElement('td'); tdDescription.textContent = item.description || '(unnamed)';
 
-        // languages column
+        // Description
+        const tdDescription = document.createElement('td');
+        tdDescription.textContent = item.description || '(unnamed)';
+
+        // Languages
         const tdLang = document.createElement('td');
         const langWrap = document.createElement('div'); langWrap.className = 'langs';
         const langs = Array.isArray(item.languages_supported) ? item.languages_supported : [];
@@ -376,22 +377,11 @@
         }
         tdLang.appendChild(langWrap);
 
-        const tdPop  = document.createElement('td'); tdPop.appendChild(renderStarsCell(item));
+        // Popularity (stars)
+        const tdPop  = document.createElement('td');
+        tdPop.appendChild(renderStarsCell(item));
 
-        const tdVis  = document.createElement('td');
-        const vis = document.createElement('button'); vis.type='button';
-        vis.className='secondary-btn'; vis.textContent = item.is_public ? 'Public' : 'Private';
-        vis.addEventListener('click', async () => {
-          if (scopeSel.value === 'public' && !item.is_public) return;
-          overlayOn(true);
-          try {
-            const r = await fetch('/vct/registry/api/visibility/' + item.id, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ is_public: !item.is_public })});
-            const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error || 'Failed to change visibility');
-            await refreshList();
-          } catch(e){ alert(e.message); } finally { overlayOn(false); }
-        });
-        tdVis.appendChild(vis);
-
+        // Actions (download + copy only; no delete)
         const tdAct  = document.createElement('td'); tdAct.className='row-actions';
         const dlVct = document.createElement('a'); dlVct.className='secondary-btn'; dlVct.textContent='Download VCT'; dlVct.href='/vct/registry/api/download/' + item.id;
         const dlSchema = document.createElement('a'); dlSchema.className='ghost-btn'; dlSchema.textContent='Schema only'; dlSchema.href='/vct/registry/api/download_schema/' + item.id;
@@ -404,29 +394,18 @@
         tdAct.appendChild(copyVctBtn);
         tdAct.appendChild(copyIntBtn);
         if (score.textContent) tdAct.appendChild(score);
-        if (scopeSel.value !== 'public') {
-          const del = document.createElement('button'); del.type='button'; del.className='secondary-btn'; del.textContent='Delete';
-          del.addEventListener('click', async () => {
-            if (!confirm(`Delete "${item.name}"?`)) return;
-            overlayOn(true);
-            try {
-              const r = await fetch('/vct/registry/api/delete/' + item.id, { method:'POST' });
-              const d = await r.json().catch(()=>({})); if (!r.ok) throw new Error(d.error || 'Delete failed');
-              await refreshList();
-            } catch(e){ alert(e.message); } finally { overlayOn(false); }
-          });
-          tdAct.appendChild(del);
-        }
 
+        // Append columns (no Visible column)
         tr.appendChild(tdName);
         tr.appendChild(tdDescription);
         tr.appendChild(tdLang);  
         tr.appendChild(tdPop);
-        tr.appendChild(tdVis);
         tr.appendChild(tdAct);
+
         rows.appendChild(tr);
       });
     }
+
 
     searchBtn.addEventListener('click', refreshList);
     resetBtn.addEventListener('click', () => { searchInput.value=''; refreshList(); });

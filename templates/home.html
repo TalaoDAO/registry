@@ -9,6 +9,86 @@
   <link rel="canonical" href="https://vc-registry.com/">
   <meta name="robots" content="index,follow" />
 
+  <!-- Strong, keyword-rich title -->
+  <title>SD-JWT VC Registry — VC Type (VCT) Metadata, Schema & Display</title>
+
+  <!-- Keywords (minor signal, but harmless) -->
+  <meta name="keywords" content="SD-JWT VC, VCT, VC Type Metadata, IETF, OAuth, selective disclosure, verifiable credential, JSON Schema, display metadata, registry" />
+
+  <!-- Open Graph (Facebook/LinkedIn/etc.) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="SD-JWT VC Registry — VC Type (VCT) Metadata" />
+  <meta property="og:description" content="Publish, discover, and generate SD-JWT VC Types with clear schema and multilingual display metadata." />
+  <meta property="og:url" content="https://vc-registry.com/" />
+  <meta property="og:site_name" content="VC Registry" />
+  <!-- Optional: your hero image -->
+  <!-- <meta property="og:image" content="https://vc-registry.com/static/og-image.png" /> -->
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SD-JWT VC Registry — VC Type (VCT) Metadata" />
+  <meta name="twitter:description" content="Publish, discover, and generate SD-JWT VC Types (VCT) with schema & display metadata." />
+  <!-- <meta name="twitter:image" content="https://vc-registry.com/static/og-image.png" /> -->
+
+  <!-- SD-JWT VC / VCT focused structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["WebSite","SoftwareApplication"],
+    "name": "VC Registry",
+    "url": "https://vc-registry.com/",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "description": "Publish, discover, and generate SD-JWT VC Types (VCT) with schema and multilingual display metadata.",
+    "keywords": "SD-JWT VC,VCT,VC Type Metadata,IETF,OAuth,verifiable credentials,JSON Schema,display metadata,registry",
+    "creator": {
+      "@type": "Organization",
+      "name": "VC Registry",
+      "url": "https://vc-registry.com/"
+    },
+    "mainEntityOfPage": "https://vc-registry.com/",
+    "sameAs": [
+      "https://datatracker.ietf.org/doc/draft-ietf-oauth-sd-jwt-vc/"
+    ],
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://vc-registry.com/vct/registry/browse?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- FAQ rich results about SD-JWT VC & VCT -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"What is a VC Type (VCT) in SD-JWT VC?",
+        "acceptedAnswer":{"@type":"Answer","text":"A VCT identifies a Verifiable Credential Type. Its metadata may include schema, display metadata (multilingual labels/descriptions), and claim hints used by wallets and verifiers."}
+      },
+      {
+        "@type":"Question",
+        "name":"Where is SD-JWT VC specified?",
+        "acceptedAnswer":{"@type":"Answer","text":"The SD-JWT VC draft is maintained by the IETF OAuth Working Group. See the draft at the IETF Datatracker."}
+      },
+      {
+        "@type":"Question",
+        "name":"How does this registry help?",
+        "acceptedAnswer":{"@type":"Answer","text":"It provides a stable URL and integrity for each VCT, plus schema and display metadata so implementers can reuse credential types consistently across issuers, wallets, and verifiers."}
+      },
+      {
+        "@type":"Question",
+        "name":"Can I generate a VCT from an issuer or schema?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. You can import from an OIDC4VCI issuer, from a JSON Schema, or start from scratch and localize display[] once across multiple languages."}
+      }
+    ]
+  }
+  </script>
+
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -63,7 +143,19 @@
   .kpi .label { font-size:.86rem; color:var(--sub); }
   .kpi .value { font-size:1.6rem; font-weight:800; margin-top:.25rem; }
   .kpi .sub { font-size:.85rem; color:var(--sub); margin-top:.2rem; }
+/* Example: adjust your KPI grid at large screens */
+  .kpi-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 
+  @media (max-width: 1200px) {
+    .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    .kpi-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  }
   .lang-badges { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.4rem; }
   .lang-badges .badge { padding:.25rem .45rem; font-size:.82rem; border-radius:999px; border:1px solid var(--border); background:#fff; }
   @media (prefers-color-scheme: dark) {
@@ -115,7 +207,7 @@
       <h1>VC Type Metadata Registry</h1>
       <p class="muted">Publish and discover SD-JWT VC Types (VCT). Generate types from issuers or schemas, localize display labels once, and reference a stable URL in your systems.</p>
       <div class="actions">
-        <a class="btn btn-primary" href="/vct/registry/browse">Open registry</a>
+        <a class="btn btn-primary" href="/vct/registry/browse">Browse the Registry</a>
         <a class="btn btn-primary" href="/vct/registry">Register a VC Type</a>
         <a class="btn" href="/attestation/generate/scratch">VC Type from Scratch</a>
         <a class="btn" href="/attestation/generate/schema">VC Type from a Schema</a>
@@ -127,6 +219,10 @@
       <div class="kpi" role="status">
         <div class="label">Public VCTs</div>
         <div class="value">{{ stats.total_public or 0 }}</div>
+      </div>
+      <div class="kpi" role="status">
+        <div class="label">Total VCTs</div>
+        <div class="value">{{ stats.total_all or 0 }}</div>
       </div>
       <div class="kpi" role="status">
         <div class="label">Added last 7 days</div>
@@ -190,7 +286,7 @@
           <li><strong>Generate VC Types</strong> three ways: from an <em>Issuer</em> (OIDC4VCI), from a <em>JSON Schema</em>, or <em>from scratch</em> with assisted AI.</li>
           <li><strong>Localize once</strong>: produce <code>display[]</code> labels/descriptions in up to <strong>30 languages</strong>, reuse everywhere.</li>
           <li><strong>Publish</strong> to a registry with a stable URL and integrity hash, or keep private while you iterate.</li>
-          <li><strong>Discover & reuse</strong> existing types from the public catalog to avoid duplicates.</li>
+          <li><strong>Discover & reuse</strong> existing types from the public registry to avoid duplicates.</li>
         </ul>
       </div>
       <div class="card">
@@ -215,18 +311,18 @@
     <section class="block grid">
       <div class="card">
         <h2>Generate from an Issuer</h2>
-        <p>Fetch an OIDC4VCI <strong>Credential Issuer</strong> metadata, select a configuration, and we prefill VCT fields (type identifier, display, claims, schema where available).</p>
-        <div class="actions"><a class="btn" href="/attestation/generate/issuer">Import from issuer →</a></div>
+        <p>Fetch an OIDC4VCI <strong>Credential Issuer</strong> metadata, select a configuration, and we prefill VCT fields (display, claims, schema...). Support Draft 11 to Finale 1.0.</p>
+        <div class="actions"><a class="btn" href="/attestation/generate/issuer">Import from Issuer →</a></div>
       </div>
       <div class="card">
         <h2>Generate from JSON Schema</h2>
-        <p>Upload a JSON Schema (2020-12+). We keep property names and help you add multilingual <code>display[]</code>.</p>
-        <div class="actions"><a class="btn" href="/attestation/generate/schema">Import schema →</a></div>
+        <p>Upload a JSON Schema (2020-12+). We keep property names and help you add multilingual <code>display[]. </code><br>Add support for 30 languages.</p>
+        <div class="actions"><a class="btn" href="/attestation/generate/schema">Import Schema →</a></div>
       </div>
       <div class="card">
         <h2>Start from scratch (with AI)</h2>
-        <p>Describe your credential and target languages; we’ll draft the <code>schema</code> and <code>display[]</code> and let you refine.</p>
-        <div class="actions"><a class="btn" href="/attestation/generate/scratch">Start blank →</a></div>
+        <p>Describe your credential and target languages; we’ll draft the <code>schema</code> and <code>display[]</code> and let you refine.<br> Add support for 30 languages.</p>
+        <div class="actions"><a class="btn" href="/attestation/generate/scratch">Start Blank →</a></div>
       </div>
     </section>
 
@@ -237,7 +333,7 @@
         <ol>
           <li><strong>Choose a path</strong>: Issuer · Schema · From Scratch.</li>
           <li><strong>Describe & localize</strong>: generate fields and <code>display[]</code> in your target languages.</li>
-          <li><strong>Review</strong> name/description for catalog clarity.</li>
+          <li><strong>Review</strong> name/description for registry clarity.</li>
           <li><strong>Publish or keep private</strong> and reference the stable VCT URL when ready.</li>
         </ol>
       </div>
@@ -382,7 +478,28 @@
         <p class="muted">Scroll inside the box to see the full example. Use the “Copy” button to copy the JSON.</p>
       </div>
     </section>
-  </main>
+ 
+
+  <section class="block" aria-label="SD-JWT VC & VCT">
+    <div class="card">
+      <h2>SD-JWT VC & VC Type (VCT) Metadata</h2>
+      <p>
+        This registry focuses on <strong>SD-JWT VC</strong> and the <strong>VC Type (VCT)</strong> metadata used by wallets and verifiers:
+        <em>schema</em> (validation), <em>display[]</em> (multilingual labels/descriptions), and <em>claim hints</em> for selective disclosure.
+      </p>
+      <p>
+        Learn more in the IETF OAuth Working Group draft:
+        <a href="https://datatracker.ietf.org/doc/draft-ietf-oauth-sd-jwt-vc/" target="_blank" rel="noopener">IETF SD-JWT VC Draft</a>.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary" href="/vct/registry/browse">Browse the Registry</a>
+        <a class="btn" href="/attestation/generate/schema">Generate from JSON Schema</a>
+        <a class="btn" href="/attestation/generate/issuer">Generate from Issuer</a>
+      </div>
+    </div>
+  </section>
+
+   </main>
 
   {% include "footer.html" %}
 
