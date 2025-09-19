@@ -27,12 +27,6 @@ GITHUB_CLIENT_ID = keys.get("github_clent_id")
 GITHUB_CLIENT_SECRET = keys.get("github_client_secret")
 GITHUB_CALLBACK = "https://8c7032575c41.ngrok.app/register/auth/github/callback"
 
-"""
-TALAO_CLIENT_ID = "zbnfxaeeck"
-TALAO_CLIENT_SECRET = "7a4caeed-7056-11f0-b19b-0a1628958560"
-TALAO_DISCOVERY_URL = "https://talao.co/sandbox/signin/app/.well-known/openid-configuration"
-TALAO_CALLBACK = "https://8c7032575c41.ngrok.app/register/auth/talao/callback"
-"""
 
 google_client = WebApplicationClient(GOOGLE_CLIENT_ID)
 github_client = WebApplicationClient(GITHUB_CLIENT_ID)
