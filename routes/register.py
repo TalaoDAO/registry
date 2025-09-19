@@ -19,7 +19,7 @@ except Exception:
 
 # OAuth clients (for Google & GitHub)
 GOOGLE_CLIENT_ID = keys.get("google_client_id")
-GOOGLE_CLIENT_SECRET = keys.get("google_client_id")
+GOOGLE_CLIENT_SECRET = keys.get("google_client_secret")
 GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 GOOGLE_CALLBACK = "https://vc-registry.com/register/auth/google/callback"
 

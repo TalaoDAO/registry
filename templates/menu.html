@@ -85,6 +85,16 @@
   </div>
 </header>
 
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flashes" role="status">
+        {% for message in messages %}
+          <p>{{ message }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
   <main>
     <section class="hero">
       <h1>VC Type (VCT) — Menu</h1>
