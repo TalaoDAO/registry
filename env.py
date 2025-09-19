@@ -42,14 +42,13 @@ class currentMode:
 
         #self.talao_verifier = keys.get('talao_verifier') # did:web:talao.co#key-6)
         self.smtp_password = keys.get('smtp_password')
-        self.QTSP = keys.get('QTSP')
 
         # Define runtime behavior depending on environment
         if self.myenv == 'aws':
             # Configuration for AWS environment
             #self.port = 4000
             self.sys_path = '/home/admin'
-            self.server = 'https://wallet-connectors.com/'
+            self.server = 'https://vc-registry.com/'
             #self.IP = '13.37.102.193'
         elif self.myenv == 'local':
             # Configuration for local development
