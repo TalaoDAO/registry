@@ -94,6 +94,17 @@ def _invoke_llm_json(client: Any, system_text: str, user_payload: Any, *, phase:
         return None
 
 
+# Helper
+def _schema_hash(schema_obj) -> str:
+    """
+    Canonical hash of a schema dict. Uses sorted, compact JSON so
+    key order/whitespace don't change the hash.
+    """
+    if not isinstance(schema_obj, dict):
+        return ""
+    s = json.dumps(schema_obj, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+    d = hashlib.sha256(s.encode("utf-8")).digest()
+    return base64.urlsafe_b64encode(d).decode("ascii").rstrip("=")
 
 # ----------------------------------------------------------------------------
 # Page + API wiring
@@ -370,6 +381,11 @@ def api_vct_upload():
     if VCTRegistry.query.filter_by(integrity=integrity).first():
         return jsonify({"error": "An entry with the same integrity already exists."}), 409
 
+    schema_hash = _schema_hash(vct_json.get("schema")) if vct_json.get("schema") else ""
+    #if schema_hash:
+    #    if VCTRegistry.query.filter_by(schema_hash=schema_hash).first():
+    #        return jsonify({"ok": False, "error": "duplicate_schema"}), 409
+    
     base_name = name
     suffix = 2
     while VCTRegistry.query.filter_by(name=name).first() is not None:
@@ -385,6 +401,7 @@ def api_vct_upload():
         description=description,
         languages_supported=json.dumps(langs),
         vct_data=json.dumps(vct_json),
+        schema_hash= schema_hash,
         is_public=publish_flag,
         keywords=",".join(_extract_keywords(vct_json)),
         search_text=_build_search_text(vct_json),

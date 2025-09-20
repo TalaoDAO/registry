@@ -63,6 +63,7 @@ class VCTRegistry(db.Model):
     description = db.Column(db.Text)
     languages_supported = db.Column(db.Text, default="[]") # an array of all languages supported
     vct_data = db.Column(db.Text)
+    schema_hash = db.Column(db.String(64), index=True, nullable=True)
     # visibility + search
     is_public = db.Column(db.Boolean, default=False, nullable=False, index=True)
     keywords = db.Column(db.Text)                     # comma-separated lowercase tokens
@@ -143,6 +144,39 @@ class Credential(db.Model):
     san_uri = db.Column(db.String(256))
     exp = db.Column(db.DateTime)
 
+class VCTImportLog(db.Model):
+    """
+    Audit + idempotency for issuer imports.
+    We keep a content hash of the issuer SD-JWT configuration so re-running
+    on the same metadata state doesn't create duplicates, while changes
+    at the issuer are imported again (new hash).
+    """
+    id = db.Column(db.Integer, primary_key=True)
+
+    issuer_url = db.Column(db.String(512), index=True, nullable=False)
+    config_id = db.Column(db.String(256), index=True, nullable=False)
+    config_vct = db.Column(db.String(512))   # issuer-advertised vct (if any)
+    config_hash = db.Column(db.String(64), index=True, nullable=False)  # base64url sha256 of cfg JSON
+
+    imported_vct_urn = db.Column(db.String(128), index=True)
+    imported_integrity = db.Column(db.String(128))
+    imported_row_id = db.Column(db.Integer, index=True)
+
+    status = db.Column(db.String(16), index=True, nullable=False, default="pending")  # pending|success|skipped|error
+    error_message = db.Column(db.Text)
+
+    raw_snapshot = db.Column(db.Text)  # full JSON of the config at the time of import
+
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.now, onupdate=datetime.now, nullable=False)
+
+    __table_args__ = (
+        # Fast lookups and uniqueness guard:
+        # same issuer + same config_id + same content_hash → already imported
+        # (we don't make it STRICT unique to allow manual repairs, but we index it)
+        db.Index("ix_vctimport_unique", "issuer_url", "config_id", "config_hash"),
+    )
+
 
 def seed_credential():
     if not Credential.query.first():
@@ -207,7 +241,7 @@ def seed_user():
         default_user = User(
             email="contact@talao.io",
             created_at=datetime.now(timezone.utc),
-            registration="initialisation",
+            registration="seed",
             name="admin",
             role="admin",
             organization="Web3 Digital Wallet",
@@ -220,7 +254,7 @@ def seed_user():
         default_user = User(
             email="contact@talao.io",
             created_at=datetime.now(timezone.utc),
-            registration="initialisation",
+            registration="seed",
             name="test",
             organization="Web3 Digital Wallet",
             country="FR",
@@ -233,7 +267,7 @@ def seed_user():
         default_user = User(
             email="contact@talao.io",
             created_at=datetime.now(timezone.utc),
-            registration="initialisation",
+            registration="seed",
             name="test_paid",
             role="user",
             organization="Web3 Digital Wallet",
@@ -242,5 +276,16 @@ def seed_user():
             profile_picture="default_picture.jpeg",
         )
         db.session.add(default_user)
+        
+        robot_email = "thierry.thevenet@talao.io"
+        if not User.query.filter_by(email=robot_email).first():
+            robot = User(
+                email=robot_email,
+                name="robot",               # as requested
+                role="user",
+                registration="seed",
+                created_at=datetime.now(timezone.utc),
+            )
+            db.session.add(robot)
         
         db.session.commit()

@@ -11,6 +11,10 @@ import redis
 import markdown
 from flask_migrate import Migrate
 import env
+from routes.generate_vct_from_issuer import init_app as init_bulk_api
+
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 
 # Your modules
 from utils import message
@@ -23,7 +27,7 @@ from db_model import (
 # Routes / APIs (kept as they are, just registered here)
 from routes import (
     home, register, menu, user_profile,
-    create_vct, vct_registry    
+    create_vct, vct_registry
 )
 
     
@@ -47,6 +51,7 @@ def create_app() -> Flask:
     """Application factory: configure, wire dependencies, register routes/APIs."""
     # Base Flask app
     app = Flask(__name__, static_folder="static", static_url_path="/static")
+    init_bulk_api(app)    
     
     @app.get("/ping")
     def ping():
@@ -146,7 +151,6 @@ def create_app() -> Flask:
     menu.init_app(app)
     create_vct.init_app(app)
     vct_registry.init_app(app)
-
         
     # ---- Error handlers ----
     @app.errorhandler(403)
