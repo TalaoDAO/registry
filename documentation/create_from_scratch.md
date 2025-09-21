@@ -1,159 +1,103 @@
-# Generate VC Type Metadata (Platform Guide)
+# Create VC Type — From Scratch
 
-**Audience:** users of the platform.  
-This guide shows how to use the **Generate VC Type Metadata** page (`generate_attestation.html`) to create a **VC Type Metadata** JSON file for any attestation. There is **no API step** here — everything happens in the web interface.
+**Audience:** Users who don’t have an issuer or schema, and want to define a new VC Type Metadata (VCT) starting from a description.
 
 ---
 
-## What you’ll produce
+## Purpose of this page
 
-A single **VC Type Metadata** JSON file that describes your credential type (VCT):
-- **`vct`** — your credential type identifier (URL or URN).
-- **`display[]`** — one entry per language (name/description) plus a **simple rendering** block (shared colors + optional logo).
-- **`schema`** — the JSON Schema for your credential’s claims (uploaded by you or inferred from a description).
-- **`claims[]`** — each business claim with localized labels (you can edit them in the editor before saving).
-
-You will download this JSON to your desktop when you’re done.
+This form lets you **describe a credential in free text** and automatically generate a draft VC Type Metadata.  
+The system infers a JSON Schema and `display[]` entries, which you can refine.
 
 ---
 
 ## Quick Start (2 minutes)
 
-1. Open **Generate VC Type Metadata** and locate the form.
-2. In **VCT (URL or URN)**, paste or type your credential type identifier (e.g., `https://issuer.example.com/vct/email-verification`).  
-3. Choose **Upload JSON Schema** *or* **Describe Attestation**:
-   - **Upload JSON Schema** if you already have a schema (`.json` file).
-   - **Describe Attestation** to let the tool infer a schema from bullets/free text.
-4. (Optional) In **Display style**, pick **Background color**, **Text color**, and add a **Logo URL**. These apply to *all* languages.
-5. Select your **Languages** (e.g., English and French).
-6. Leave **Try using LLM** enabled unless you prefer deterministic labels only.
-7. Click **Generate Metadata** → Review & edit the JSON in the editor → **Save JSON to Desktop**.
-
-Tip: Use the **Format** and **Validate** buttons in the editor to keep your JSON clean.
+1. Enter a **VCT identifier** (URL or URN).  
+2. Provide a **VCT name**.  
+3. Write an **Attestation description** (free text or bullet list).  
+4. Optionally customize **Display style** (colors, logo).  
+5. Select target **Languages**.  
+6. Click **Generate Metadata**.  
+7. Review and edit the generated JSON.  
+8. Save JSON to your desktop or upload.
 
 ---
 
-## Step‑by‑Step: filling the form
+## Step-by-Step
 
-### 1) VCT (URL or URN)
-- Enter a stable identifier for this credential type.  
-  - URL example: `https://issuer.example.com/vct/employee-card`  
-  - URN example: `urn:uuid:…` (auto‑suggested when the page opens)
+### 1) VCT identifier
+- Required field.  
+- Example: `https://issuer.example.com/vct/your-credential`.
 
-### 2) Choose your input mode
-- **Upload JSON Schema**  
-  - Click **Choose File** and select a `.json` file.  
-  - The tool uses your schema as‑is (no inference).
-- **Describe Attestation**  
-  - Write bullets or short lines that list the claims you want. Example:  
-    ```
-    Email Verification
-    - email (format: email)
-    - verifiedAt (date-time)
-    - method (enum: magic-link, code, oidc, other)
-    ```
-  - The tool infers a JSON Schema and the claim paths from this description.
+### 2) VCT name
+- Human-readable name.  
+- Example: “Employment Attestation”.
 
-### 3) Display style (branding for all languages)
-- **Background color** — e.g., `#0b1020` (dark) or `#ffffff` (light).
-- **Text color** — choose a readable color against your background.
-- **Logo URL (optional)** — a public HTTPS image URL (PNG/SVG/JPG).  
-These values are stored under `display[].rendering.simple` and are duplicated for every language so your branding stays consistent.
+### 3) Attestation description
+- Free text or bullet list.  
+- Example:  
+  ```
+  An employment attestation proving a person works for ACME
+  - employeeId
+  - fullName
+  - address: street, locality, region, postalCode, country
+  ```  
+- The system infers a schema from this.
 
-### 4) Languages
-- Tick one or more languages (we recommend **English + your target locales**).  
-- The tool creates one `display` entry per selected language and also localizes the claim labels.
+### 4) Display style
+- Background color, text color, optional logo.  
+- Applies to all languages.
 
-### 5) Try using LLM
-- When checked, the tool proposes human‑friendly names/descriptions for your type and claims.  
-- If you uncheck it, the tool generates deterministic fallback labels (derived from field names).
+### 5) Languages
+- Choose supported locales.  
+- **Select all** / **Clear all** helpers.  
+- Include English plus target locales.
 
-### 6) Generate & edit
-- Click **Generate Metadata**. A spinner appears while the JSON is built.
-- The result opens in the **Editable JSON** area. You can:
-  - **Format** — pretty‑print the JSON.
-  - **Validate** — check JSON validity.
-  - **Reset to Server Result** — discard your edits and reload the original.
-  - **Copy** — copy the JSON to your clipboard.
-  - **Save JSON to Desktop** — download the file (the filename includes the VCT and languages).
+### 6) Actions
+- **Generate Metadata** — produce draft JSON.  
+- **Format** — prettify JSON.  
+- **Validate** — check structure.  
+- **Reset to Server Result** — restore initial.  
+- **Copy** — copy JSON to clipboard.  
+- **Save JSON to Desktop** — download.
 
 ---
 
-## Result overview (what you’ll see in the editor)
+## Result overview
 
-- **`vct`**: the identifier you provided.  
-- **`display[]`**: one object per language, e.g.:
-  ```json
-  {
-    "lang": "en",
-    "name": "Email Verification",
-    "description": "Verifiable credential",
-    "rendering": {
-      "simple": {
-        "background_color": "#0b1020",
-        "text_color": "#e6edf3",
-        "logo": { "uri": "https://issuer.example.com/assets/logo.png" }
-      }
-    }
-  }
-  ```
-- **`schema`**: either your uploaded JSON Schema or an inferred one (you can edit this too).
-- **`claims[]`**: each entry maps a **claim path** to localized display labels, e.g.:
-  ```json
-  {
-    "path": ["email"],
-    "display": [
-      { "lang": "en", "name": "Email" },
-      { "lang": "fr", "name": "E‑mail" }
-    ],
-    "sd": "allowed"
-  }
-  ```
+At the end you’ll have a **VCT JSON file** with:  
+- A stable identifier.  
+- Localized names and descriptions.  
+- An inferred JSON Schema.  
+- Claims mapped for display.
 
 ---
 
 ## Practical recipes
 
-- **You already have a schema** → choose **Upload JSON Schema**, set branding & languages, **Generate**, then save.
-- **You’re starting from scratch** → choose **Describe Attestation**, paste bullets, **Generate**, tweak the inferred schema/labels, then save.
-- **Email Verification example**  
-  - VCT: `https://issuer.example.com/vct/email-verification`  
-  - Description:  
-    ```
-    Email Verification
-    - email (format: email)
-    - verifiedAt (date-time)
-    - method (enum: magic-link, code, oidc, other)
-    ```
-  - Pick colors and a logo URL, choose languages, **Generate**, then **Save JSON**.
+- **Prototype quickly** — just describe your credential.  
+- **Use AI assistance** — let the system draft schema and claims.  
+- **Refine later** — edit JSON directly.
 
 ---
 
 ## Tips & best practices
 
-- Use a **stable VCT** you control (URL or URN). If it’s a URL, consider hosting the JSON at that address later.
-- Keep **names** short and **descriptions** clear; adjust them in the editor.
-- Choose **high‑contrast** colors for readability.
-- Start with **English + one locale**, expand once the labels look right.
-- If the editor says *“Invalid JSON”*, click **Reset**, then **Format**, and re‑apply your edits carefully.
+- Write clear descriptions with bullet points.  
+- Keep identifiers stable.  
+- Always check the generated schema manually.  
+- Localize early if possible.
 
 ---
 
 ## Troubleshooting
 
-- **“Invalid JSON Schema file”** when uploading → Ensure the file is valid JSON and uses `.json` extension.
-- **Nothing happens on Generate** → Check that **VCT** is filled and either a **schema** file is selected or a **description** is written (depending on the mode).
-- **Colors/logo not visible in JSON** → Make sure you set them in **Display style** before clicking **Generate**; they appear under `display[].rendering.simple`.
-- **Weird labels** → Uncheck **Try using LLM** to switch to deterministic labels, or directly edit in the editor.
-- **Can’t save** → The **Save JSON to Desktop** button only enables after a successful generation; ensure the editor shows a result.
+- **Schema looks wrong** → Rewrite description more clearly.  
+- **Validation fails** → Fix errors directly in the JSON.  
+- **No output** → Ensure description isn’t empty.  
+- **Download disabled** → Generate first.
 
 ---
 
-## Where to get help
-
-- On the page header, click **“Explain ?”** to open this guide.  
-- If something looks off in the generated JSON, paste a small excerpt when you contact support — we’ll tell you exactly which part to tweak.
-
----
-
-**You’re done!** You now have a VC Type Metadata file ready to share or to host under your VCT URL.
+✅ You can now generate a new VC Type Metadata from scratch and refine it to your needs.

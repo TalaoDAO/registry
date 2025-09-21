@@ -1,66 +1,98 @@
-# Create VC Type — From Existing Issuer
+# Create VC Type — From Issuer
 
-**Audience:** Users who want to derive a **VC Type (VCT) Metadata** file directly from an **OIDC4VCI Credential Issuer**.
+**Audience:** Users who have access to an **OIDC4VCI Credential Issuer** and want to generate a VC Type Metadata (VCT) directly from it.
 
 ---
 
 ## Purpose of this page
-This form fetches **OIDC4VCI issuer metadata** (`/.well-known/openid-credential-issuer`), lets you **load and choose** a credential configuration, and generates a **VCT JSON** that mirrors the issuer’s definitions (schema, claims, display, vct).  
-You can **review, edit, validate, and save** the result.
+
+This form lets you **import metadata from an OIDC4VCI Credential Issuer** to prefill a Verifiable Credential Type (VCT).  
+The system extracts configuration automatically and prepares the JSON for review.
 
 ---
 
-## Fields in the form
+## Quick Start (2 minutes)
 
-### 1. VCT name (optional)
-- A friendly name, only used for the generated filename.  
-- If left blank, the tool uses the first available `display.name` from the issuer metadata.
-
-### 2. Credential Issuer URL
-- The base URL of the OIDC4VCI issuer (example: `https://talao.co/issuer/hrngdrpura`).  
-- Metadata is fetched from `/.well-known/openid-credential-issuer`.  
-- If that path fails, the direct URL is tried.
-
-### 3. Credential configuration
-- After you fill the issuer URL, click **Load**.  
-- The builder queries the issuer for its SD-JWT VC configurations.  
-- A dropdown (`select`) will appear so you can pick the configuration to use.  
-- Each option may include a `name`, `id`, and `vct`.
-
-### 4. When issuer provides a remote VCT (URL)
-- **Extends (default):** Your generated VCT includes an `extends` entry pointing to the remote VCT (with integrity).  
-- **Import:** The remote VCT is imported inline into your JSON.
+1. Enter the **Issuer URL**.  
+2. Click **Load issuer**.  
+3. Select the credential configuration you want.  
+4. The system fills in fields like `vct`, `display[]`, `claims`, and `schema`.  
+5. Review and edit the generated metadata in the editor.  
+6. Save JSON to your desktop or upload it to the registry.
 
 ---
 
-## Actions
+## Step-by-Step
 
-- **Generate Metadata** — Build the VCT JSON for the selected configuration.  
-- **Format** — Pretty-print the JSON.  
-- **Validate** — Check that the JSON is valid.  
-- **Reset to Server Result** — Discard edits and reload the original JSON.  
-- **Copy** — Copy JSON to your clipboard.  
-- **Save JSON to Desktop** — Download the file (name includes the VCT identifier and timestamp).  
+### 1) Issuer URL
+- Paste the URL of the OIDC4VCI issuer.  
+- Supported: Draft 11 through Final specification.
 
-The JSON editor appears once metadata has been generated.
+### 2) Load issuer
+- Fetches issuer metadata.  
+- Populates available credentials for selection.
+
+### 3) VCT identifier
+- Required text field.  
+- Example: `https://issuer.example.com/vct/employee`.
+
+### 4) VCT name
+- Human-readable name.  
+- Example: “Work ID”.
+
+### 5) Display style
+- Optional customization applied to all languages.  
+- Fields: background color, text color, logo URL.
+
+### 6) Languages
+- Select one or more languages for `display[]`.  
+- Use **Select all** / **Clear all** buttons.  
+- We recommend English plus your target locales.
+
+### 7) Actions
+- **Generate Metadata** — fetch + prefill JSON.  
+- **Format** — prettify JSON.  
+- **Validate** — check JSON structure.  
+- **Reset to Server Result** — restore original.  
+- **Copy** — copy JSON to clipboard.  
+- **Save JSON to Desktop** — download the file.
+
+### 8) Upload to Registry
+- Optional step to add this VCT into your registry space.  
+- Choose whether to publish immediately.
 
 ---
 
-## What the generated VCT contains
-- **`vct`** — The exact identifier from the issuer configuration.  
-- **`display[]`** — Taken directly from the issuer’s `display` entries (languages, names, logos, colors if present).  
-- **`schema`** — JSON Schema (2020-12) built from the issuer’s claims definitions.  
-- **`claims[]`** — Each claim path with `display` entries for all languages provided by the issuer.  
-- No labels or languages are added — the file respects what the issuer publishes.
+## Result overview
+
+At the end you’ll have a **VCT JSON file** with identifier, display metadata, schema, and claims extracted from the issuer.
 
 ---
 
-## Tips & Troubleshooting
-- **Load button does nothing** — Check the URL and console (CORS errors may block requests).  
-- **No configurations found** — The issuer may not support SD-JWT VC.  
-- **Error on generate** — Ensure you selected a configuration after loading.  
-- **Editing JSON** — Use **Format** and **Validate** before saving to ensure clean output.
+## Practical recipes
+
+- **Generate quickly** from a live issuer instead of starting from scratch.  
+- **Reuse issuer metadata** across multiple environments.  
+- **Combine with Manage Registry** to keep a private copy or publish.
 
 ---
 
-✅ You now have a VCT file derived directly from an issuer, suitable for registry upload or further use.
+## Tips & best practices
+
+- Always verify the **issuer URL** is reachable.  
+- Double-check localized `display[]` fields.  
+- Keep your VCT identifiers stable.  
+- Use the integrity hash if you reference the file externally.
+
+---
+
+## Troubleshooting
+
+- **Issuer not loading** → Check the URL, it must support OIDC4VCI metadata.  
+- **No credential offered** → The issuer might not advertise VCTs.  
+- **Validation fails** → Correct the JSON manually in the editor.  
+- **Upload disabled** → You may not be logged in.
+
+---
+
+✅ You can now generate a VC Type Metadata directly from an issuer and add it to your registry.

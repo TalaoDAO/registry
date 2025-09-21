@@ -1,59 +1,126 @@
-# Menu — VC‑REGISTRY.COM
+# VC Type Menu (Platform Guide)
 
-**Audience:** Anyone creating, registering, or exploring **VC Type metadata** on vc‑registry.com.  
-**Last updated:** 2025‑09‑17
-
-This page documents the options on the **Menu** screen. The current menu is streamlined around three actions: **Create**, **Register & Publish (Free)**, and **Learn**.
+**Audience:** users of the platform.  
+This guide explains the **Menu** page (`menu.html`) where you choose how to create, manage, or discover **VC Type Metadata (VCTs)**. Think of it as the starting point for all workflows.
 
 ---
 
-## 1) Create VC Type
-Open the generator to produce a valid **VC Type Metadata JSON** from scratch or from an existing JSON Schema.
+## What you’ll do on this page
 
-- Include a **schema** (properties & constraints)
-- Provide **display** entries (per language, with `lang`, `name`, `description`)
-- Add **keywords** to boost catalog search
-- Use a stable **`vct`** URL/URN that you control
+From the menu you can:
 
-**Go to:** `/attestation/generate`
+- **Generate a VCT from an Issuer** (OIDC4VCI metadata).  
+- **Generate a VCT from JSON Schema** you already have.  
+- **Generate a VCT from Scratch**, assisted by AI.  
+- **Manage your own VCTs** (publish, update, delete).  
+- **Browse the Registry** of public VCTs.
 
----
-
-## 2) Register & Publish (Free)
-Upload your JSON to the **VC Type Registry**. The page will auto‑fill **Name** and **Description** when possible; these fields are **required**.
-
-**Auto‑fill order:**  
-1) Root: `name`, `description`  
-2) `display` array (picks English when available) → `name`, `description`  
-3) `schema.title`, `schema.description`
-
-If either field is still missing, you’ll be prompted to fill it before upload.
-
-After upload you can:
-- Keep entries **Private** or **Publish** anytime
-- Copy the stable **VCT URL**
-- Copy the **sha256** integrity value (Subresource Integrity)
-- Browse the **Public Catalog**, rate entries, and see popularity/usage
-
-**Go to:** `/vct/registry` (Registry) • `/vct/registry?scope=public` (Public Catalog)
+Each card on the page corresponds to one of these flows.
 
 ---
 
-## 3) Learn the Basics
-- **VCT Registry guide:** overview, auto‑fill rules, search tips, best practices.  
-  **Link:** `/documentation/vct_registry`
-- **Why publish:** improves discovery and interoperability across wallets and verifiers.
-- **Spec alignment:** IETF *SD‑JWT VC issuer metadata* (see “Specification” links in the UI).
+## Quick Start (2 minutes)
+
+1. Open the **Menu** page.  
+2. Decide what you want to do:
+   - Have an **Issuer URL**? → choose **Generate from an Issuer**.  
+   - Have a **JSON Schema file**? → choose **Generate from JSON Schema**.  
+   - Have only a **description of your credential**? → choose **Generate from Scratch**.  
+   - Want to **edit or publish your own VCTs**? → open **Manage your VC Types**.  
+   - Want to **see what others published**? → click **Browse the Registry**.  
+3. Click the button on the card to continue.
 
 ---
 
-## Quick start
-1. **Create** a VC Type → `/attestation/generate`  
-2. **Register** it in the Registry → `/vct/registry`  
-3. (Optional) **Publish** to the Public Catalog → `/vct/registry?scope=public`  
-4. Share the **VCT URL** + **sha256** integrity with integrators.
+## Step-by-Step: the options
+
+### 1) Generate from an Issuer
+- **Purpose**: Fetch OIDC4VCI **Credential Issuer** metadata to prefill a VCT.  
+- **What happens**:  
+  - Reads `vct`, `display[]`, `claims`, and `schema` from the issuer.  
+  - Supports OIDC4VCI drafts 11 through final.  
+- **Next**: After loading, you select the specific credential and continue editing.
+
+### 2) Generate from JSON Schema
+- **Purpose**: Reuse an existing schema (`.json` file).  
+- **What happens**:  
+  - The tool keeps your property names.  
+  - Lets you add localized `display[]`.  
+  - Optional AI assistance.  
+- **Next**: Upload the file and proceed to the generator/editor.
+
+### 3) Generate from Scratch
+- **Purpose**: Start without an issuer or schema.  
+- **What happens**:  
+  - Describe your credential in free form.  
+  - The tool drafts a `schema` and `display[]`.  
+  - Supports up to 30 languages, with AI assistance.  
+- **Next**: Review and refine the generated result.
+
+### 4) Manage your VC Types
+- **Purpose**: Workspace for your own VCTs.  
+- **What happens**:  
+  - List, update visibility (public/private), or delete VCTs.  
+  - Each entry requires a name and description.  
+  - The platform computes an integrity hash (`sha256-…`).  
+- **Next**: Click a row to download, edit, or change settings.
+
+### 5) Browse the Registry
+- **Purpose**: Discover VCTs shared by others.  
+- **What happens**:  
+  - Search by keyword (with optional AI search).  
+  - See ratings, usage counts, and supported languages.  
+- **Next**: Reuse these VCTs directly in your own system.
 
 ---
 
-## What changed from the old menu?
-Advanced/legacy items (separate issuer/verifier modules, validators, status lists, etc.) were removed from the Menu to keep new users focused on the essential flow: **Create → Register/Publish → Learn**. Those modules can still be linked from docs or dedicated sections if needed.
+## Result overview
+
+By the end of any of the generation flows you’ll have a **VC Type Metadata JSON** file that includes:
+- **`vct`** — identifier (URL or URN).  
+- **`display[]`** — localized names, descriptions, and rendering options.  
+- **`schema`** — JSON Schema of the claims.  
+- **`claims[]`** — mapping of claim paths to localized display labels.  
+
+If you choose Manage or Browse, you won’t generate a new file, but you’ll interact with existing VCTs.
+
+---
+
+## Practical recipes
+
+- **You have an Issuer** → use *Generate from an Issuer*, then refine.  
+- **You have a schema file** → use *Generate from JSON Schema*, add translations, then save.  
+- **You only have an idea** → use *Generate from Scratch*, describe, then refine with AI help.  
+- **You already published VCTs** → use *Manage your VC Types* to keep them up to date.  
+- **You want to reuse community types** → use *Browse the Registry*.
+
+---
+
+## Tips & best practices
+
+- Start from the **flow that matches what you already have** (issuer, schema, or just an idea).  
+- Keep your VCT identifiers stable — use a URL or URN you control.  
+- Localize names/descriptions for your target languages early.  
+- Use the registry to avoid reinventing existing types.  
+- Manage visibility: keep VCTs private until they’re ready.
+
+---
+
+## Troubleshooting
+
+- **Issuer not loading** → Check the issuer URL is accessible and supports OIDC4VCI metadata.  
+- **Schema upload fails** → Ensure it’s valid JSON, using draft 2020-12 or later.  
+- **AI draft looks wrong** → Edit the schema/labels manually or retry with simpler description.  
+- **Registry empty** → Try changing scope (My, Public, Private, All) or adjust search terms.  
+- **Cannot change visibility** → Only the creator can change visibility of their VCTs.
+
+---
+
+## Where to get help
+
+- On the page header, click **“Explain ?”** to open this guide.  
+- For technical issues, include the VCT identifier or JSON snippet when contacting support.
+
+---
+
+**That’s it!** You now know what each menu option does and how to pick the right flow.
