@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VCT Registry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+  <style>
+    :root{ --blue:#1a73e8; --blue-dark:#1558b0; --surface:#ffffff; --border:#e3e3e3;
+           --text:#202124; --subtext:#5f6368; --bg:#f8f9fa; --ok:#166534; --err:#991b1b; }
+    body { margin:0; background:#f7f9fc; color:#333; font-family: Arial, sans-serif; }
+
+    .section { max-width:900px; margin:4rem auto; padding:0 2rem; }
+    .card { width:100%; background:var(--surface); border:1px solid var(--border);
+            border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.06); overflow:hidden; }
+    .card-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+    .app-mark { width:28px; height:28px; border-radius:6px; background:var(--blue); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.95rem; }
+    .title { margin:0; font-size:1rem; font-weight:700; font-family:'Roboto'; }
+    .subtitle { margin:0; font-size:.9rem; color:var(--subtext); font-weight:400; font-family:'Roboto'; }
+
+    .card-body { padding:1.25rem; display:grid; gap:1rem; }
+    .note { color:var(--subtext); font-size:.9rem; }
+
+    .dropzone { border:2px dashed var(--border); border-radius:12px; padding:1.25rem; background:#fff;
+      display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; cursor:pointer; }
+    .dropzone.drag { border-color: var(--blue); background:#f0f6ff; }
+
+    .primary-btn { appearance:none; border:none; cursor:pointer; text-decoration:none;
+      padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
+      font-family:'Roboto'; background:var(--blue); color:#fff; }
+    .primary-btn:hover { background:var(--blue-dark); }
+
+    input[type="text"] { padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px; min-width:220px; }
+    input[name="vc-name"], input[name="vc-desc"] { min-width:260px; }
+
+    .overlay { position:fixed; inset:0; background:rgba(255,255,255,.7); backdrop-filter: blur(2px);
+               display:none; align-items:center; justify-content:center; z-index:50; }
+    .spinner { width:46px; height:46px; border-radius:999px; border:4px solid #d1d5db; border-top-color:var(--blue);
+               animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (prefers-color-scheme: dark) {
+      :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
+      .dropzone { background:#151617; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="logo">
+      <strong><a href="/" style="color: var(--primary); text-decoration: none;">VC-REGISTRY.COM</a></strong>
+    </div>
+    <div class="nav-group">
+      <nav>
+        <a href="/menu">Menu</a>
+        <a href="/documentation/vct_registry" target="_blank" rel="noopener">Explain ?</a>
+      </nav>
+      {% include "account.html" %}
+    </div>
+  </header>
+
+  <main class="section">
+    <h1 style="text-align:center; margin:0 0 .5rem 0;">Import your VC Type from a file</h1>
+    <p class="note" style="text-align:center; margin:0 0 1.25rem 0;">
+      Upload a <code>.json</code> VCT Type Metadata file. We’ll compute its <strong>sha256</strong> integrity and store it. You can optionally publish it to the public catalog.
+    </p>
+
+    <article class="card" aria-labelledby="upload-title">
+      <header class="card-header">
+        <div class="app-mark" aria-hidden="true">R</div>
+        <div>
+          <h2 class="title" id="upload-title">Add a VC Type to the Registry</h2>
+          <p class="subtitle">Upload a VCT Type Metadata JSON</p>
+        </div>
+      </header>
+
+      <section class="card-body">
+        <div class="dropzone" id="dropzone">
+          <div>
+            <strong>Drop your VCT JSON here</strong>
+            <div class="note">or click “Choose file”</div>
+          </div>
+          <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+            <label class="switch"><input type="checkbox" checked id="publish-now"> Publish after upload</label>
+            <input type="text" id="vc-name" name="vc-name" placeholder="VC type name (required)" aria-label="VC type name" />
+            <input type="text" id="vc-desc" name="vc-desc" placeholder="VC type description (required)" aria-label="VC type description" />
+            <input type="file" id="file" accept="application/json,.json" />
+            <button id="upload-btn" class="primary-btn" type="button">Upload</button>
+          </div>
+        </div>
+        <div class="note" id="upload-status" style="min-height:1.2em;"></div>
+      </section>
+    </article>
+  </main>
+
+  {% include "footer.html" %}
+
+  <div class="overlay" id="overlay">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.75rem;">
+      <div class="spinner"></div>
+      <div class="mono">Working…</div>
+    </div>
+  </div>
+
+  <script>
+    const dz = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file');
+    const publishNow = document.getElementById('publish-now');
+    const uploadBtn = document.getElementById('upload-btn');
+    const statusEl = document.getElementById('upload-status');
+    const overlay = document.getElementById('overlay');
+    const nameInput = document.getElementById('vc-name');
+    const descriptionInput = document.getElementById('vc-desc');
+
+    function overlayOn(on){ overlay.style.display = on ? 'flex' : 'none'; }
+    function setStatus(text, ok=null){
+      statusEl.textContent = text || '';
+      statusEl.style.color = ok === false ? '#991b1b' : ok === true ? '#166534' : '';
+    }
+
+    // drag-drop styling
+    ;['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+    ;['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+    dz.addEventListener('drop', e => {
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change'));
+      }
+    });
+
+    // pick English display block if exists
+    function pickDisplayBlock(obj) {
+      const arr = Array.isArray(obj?.display) ? obj.display : [];
+      const en = arr.find(it => it && typeof it === 'object' && typeof it.lang === 'string' && it.lang.toLowerCase().startsWith('en'));
+      return en || arr[0] || {};
+    }
+    function guessNameFromVctOrFilename(obj, file){
+      const vct = String(obj.vct || '').split(/[/:]/).pop() || '';
+      const fname = (file?.name || '').replace(/\.json$/i, '');
+      return vct || fname || '';
+    }
+    async function extractMetaFromFile(file){
+      const raw = await file.text();
+      const obj = JSON.parse(raw);
+      const disp = pickDisplayBlock(obj);
+      const schema = obj.schema || {};
+      const name = obj.name || disp.name || schema.title || guessNameFromVctOrFilename(obj, file);
+      const description = obj.description || disp.description || schema.description || '';
+      return { name: String(name||'').trim(), description: String(description||'').trim() };
+    }
+
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      try {
+        const { name, description } = await extractMetaFromFile(f);
+        if (name && !nameInput.value.trim()) nameInput.value = name;
+        if (description && !descriptionInput.value.trim()) descriptionInput.value = description;
+        if (!name || !description) {
+          const missing = [!name ? 'name':null, !description ? 'description':null].filter(Boolean).join(' & ');
+          setStatus('Missing '+missing+' — please fill before uploading.', false);
+        } else {
+          setStatus('Loaded name & description from file ✓', true);
+        }
+      } catch(e){ setStatus('Invalid JSON: '+(e.message||e), false); }
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+      const f = fileInput.files && fileInput.files[0];
+      const name = (nameInput.value||'').trim();
+      const description = (descriptionInput.value||'').trim();
+      if (!f){ setStatus('Please choose a JSON file first.', false); return; }
+      if (!name){ setStatus('Please enter the VC type name.', false); nameInput.focus(); return; }
+      if (!description){ setStatus('Please enter the VC description.', false); descriptionInput.focus(); return; }
+
+      setStatus('Preparing upload…'); overlayOn(true);
+      try {
+        const rawText = await f.text();
+        let obj; try{ obj=JSON.parse(rawText);}catch(e){ throw new Error('Invalid JSON: '+e.message); }
+        obj.name=name; obj.description=description;
+        const blob = new Blob([JSON.stringify(obj,null,2)], {type:'application/json'});
+        const fd = new FormData(); fd.append('file', blob, f.name||'vct.json'); fd.append('publish', publishNow.checked?'true':'false');
+        setStatus('Uploading…');
+        const resp = await fetch('/vct/registry/api/upload',{method:'POST',body:fd});
+        const data = await resp.json().catch(()=>({}));
+        if(!resp.ok) throw new Error(data.error||'Upload failed');
+        setStatus(data.is_public?'Added and published ✓':'Added ✓', true);
+        fileInput.value=''; publishNow.checked=true; nameInput.value=''; descriptionInput.value='';
+      }catch(e){ setStatus(e.message||'Upload failed', false);}finally{ overlayOn(false); }
+    });
+  </script>
+</body>
+</html>

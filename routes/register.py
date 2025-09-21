@@ -46,6 +46,7 @@ def init_app(app, db):
     app.add_url_rule('/register/auth/wallet/callback',  view_func=register_wallet_callback, methods=['GET', 'POST'], defaults={'db': db})
     
     app.add_url_rule('/register/test',  view_func=register_test, methods=['GET', 'POST'])
+    app.add_url_rule('/register/admin',  view_func=register_admin, methods=['GET', 'POST'])
 
     
 
@@ -264,3 +265,11 @@ def register_test():
         login_user(user)
     return redirect("/menu")
 
+
+def register_admin():
+    mode = current_app.config["MODE"]
+    logout_user()
+    user = User.query.filter_by(name="admin").first()
+    if mode.myenv == 'local':
+        login_user(user)
+    return redirect("/menu")

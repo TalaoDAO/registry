@@ -112,7 +112,9 @@ def _schema_hash(schema_obj) -> str:
 
 def init_app(app):
     # Page
-    app.add_url_rule("/vct/registry", view_func=vct_registry_page, methods=["GET"])  # UI
+    #app.add_url_rule("/vct/registry", view_func=vct_registry_page, methods=["GET"])  # UI
+    app.add_url_rule("/vct/registry/manage", view_func=vct_registry_manage, methods=["GET"])  # UI
+    app.add_url_rule("/vct/registry/import", view_func=vct_registry_import, methods=["GET"])  # UI
     app.add_url_rule("/vct/registry/browse", view_func=vct_registry_browse, methods=["GET"])  # UI
 
     # APIs (JSON)
@@ -133,10 +135,17 @@ def init_app(app):
 # UI page
 # ----------------------------------------------------------------------------
 
-@login_required
-def vct_registry_page():
-    return render_template("vct_registry.html", user=current_user)  # keep user available to the template  :contentReference[oaicite:2]{index=2}
+#@login_required
+#def vct_registry_page():
+#    return render_template("vct_registry.html", user=current_user)  # keep user available to the template  :contentReference[oaicite:2]{index=2}
 
+@login_required
+def vct_registry_manage():
+    return render_template("manage_registry.html", user=current_user)  # keep user available to the template  :contentReference[oaicite:2]{index=2}
+
+@login_required
+def vct_registry_import():
+    return render_template("import_vct.html", user=current_user)  # keep user available to the template  :contentReference[oaicite:2]{index=2}
 
 def vct_registry_browse():
     return render_template("vct_registry_browse.html", user=current_user)  # keep user available to the template  :contentReference[oaicite:2]{index=2}
@@ -282,23 +291,34 @@ def _rating_payload(row: VCTRegistry, *, user_id: Optional[int]) -> Dict[str, An
 # ----- APIs ---------------------------------------------------------------
 def api_vct_list():
     # optional filters via query params, matching ai_search semantics
-    requested_scope = (request.args.get("scope") or "public").lower()  # public | my | all
+    requested_scope = (request.args.get("scope") or "public").lower()  # public | my | all | private
     q = (request.args.get("q") or "").strip()
     is_auth = getattr(current_user, "is_authenticated", False)
     scope = requested_scope if is_auth else "public"
 
+    is_admin = getattr(current_user, "is_admin", False) or getattr(current_user, "role", "") == "admin"
+    user_id = getattr(current_user, "id", None)
 
-    # 1) define the base query
     query = VCTRegistry.query
     if scope == "public":
         query = query.filter_by(is_public=True)
+    elif scope == "private":
+        # private entries of current user (for non-admin) or all private (for admin)
+        if is_admin:
+            query = query.filter_by(is_public=False)
+        else:
+            query = query.filter_by(user_id=user_id, is_public=False)
     elif scope == "my":
-        query = query.filter_by(user_id=current_user.id)
-    else:
-        # "all" = public OR mine
-        query = query.filter((VCTRegistry.is_public == True) | (VCTRegistry.user_id == current_user.id))
+        query = query.filter_by(user_id=user_id)
+    elif scope == "all":
+        if is_admin:
+            # admins see absolutely everything
+            pass
+        else:
+            # public OR mine for non-admins
+            query = query.filter((VCTRegistry.is_public == True) | (VCTRegistry.user_id == user_id))
 
-    # 2) optional text search
+    # optional text search
     if q:
         like = f"%{q.lower()}%"
         query = query.filter(
@@ -308,11 +328,9 @@ def api_vct_list():
             (VCTRegistry.keywords.ilike(like))
         )
 
-    # 3) fetch rows
     rows = query.order_by(VCTRegistry.created_at.desc()).all()
 
     def _pop_score(r: VCTRegistry) -> float:
-        # popularity-only score for the plain list endpoint
         rating = float(r.avg_rating or 0.0) / 5.0
         max_calls = max([rr.calls_count or 0 for rr in rows] or [1])
         calls = float(r.calls_count or 0)
@@ -324,6 +342,8 @@ def api_vct_list():
             langs = json.loads(r.languages_supported or "[]")
         except Exception:
             langs = []
+        is_owner = (user_id is not None and r.user_id == user_id)
+        can_modify = bool(is_admin or is_owner)
         base = {
             "id": r.id,
             "name": r.name,
@@ -335,12 +355,15 @@ def api_vct_list():
             "is_public": r.is_public,
             "created_at": (r.created_at.isoformat() if r.created_at else None),
             "updated_at": (r.updated_at.isoformat() if r.updated_at else None),
+            "is_owner": is_owner,
+            "can_modify": can_modify,
         }
         base.update(_rating_payload(r, user_id=(current_user.id if is_auth else None)))
-        base.update({"score": _pop_score(r)})  # local popularity-only score
+        base.update({"score": _pop_score(r)})  # popularity-only score
         return base
 
     return jsonify([row_json(r) for r in rows])
+
 
 
 @login_required
@@ -422,18 +445,27 @@ def api_vct_upload():
 
 @login_required
 def api_vct_delete(row_id: int):
-    row = VCTRegistry.query.filter_by(id=row_id, user_id=current_user.id).first()
+    is_admin = getattr(current_user, "is_admin", False) or getattr(current_user, "role", "") == "admin"
+    if is_admin:
+        row = VCTRegistry.query.filter_by(id=row_id).first()
+    else:
+        row = VCTRegistry.query.filter_by(id=row_id, user_id=current_user.id).first()
     if not row:
-        return jsonify({"error": "Not found"}), 404
+        return jsonify({"error": "Not found or not permitted"}), 404
     db.session.delete(row)
     db.session.commit()
     return jsonify({"ok": True})
 
+
 @login_required
 def api_vct_visibility(row_id: int):
-    row = VCTRegistry.query.filter_by(id=row_id, user_id=current_user.id).first()
+    is_admin = getattr(current_user, "is_admin", False) or getattr(current_user, "role", "") == "admin"
+    if is_admin:
+        row = VCTRegistry.query.filter_by(id=row_id).first()
+    else:
+        row = VCTRegistry.query.filter_by(id=row_id, user_id=current_user.id).first()
     if not row:
-        return jsonify({"error": "Not found"}), 404
+        return jsonify({"error": "Not found or not permitted"}), 404
     try:
         data = request.get_json(force=True)
     except Exception:
@@ -442,6 +474,7 @@ def api_vct_visibility(row_id: int):
     row.updated_at = datetime.now(timezone.utc)
     db.session.commit()
     return jsonify({"ok": True, "is_public": row.is_public})
+
 
 def api_vct_download(row_id: int):
     row = VCTRegistry.query.filter_by(id=row_id).first()
@@ -536,13 +569,27 @@ def api_vct_ai_search():
     scope = requested_scope if is_auth else "public"
     top_k = max(1, min(int(body.get("top_k") or 10), 50))
 
+    is_admin = getattr(current_user, "is_admin", False) or getattr(current_user, "role", "") == "admin"
+    user_id = getattr(current_user, "id", None)
+
     query = VCTRegistry.query
     if scope == "public":
         query = query.filter_by(is_public=True)
     elif scope == "my":
-        query = query.filter_by(user_id=current_user.id)
+        query = query.filter_by(user_id=user_id)
+    elif scope == "private":
+        if is_admin:
+            query = query.filter_by(is_public=False)
+        else:
+            query = query.filter_by(user_id=user_id, is_public=False)
+        query = query.filter_by(user_id=user_id)
+    elif scope == "all":
+        if is_admin:
+            pass
+        else:
+            query = query.filter((VCTRegistry.is_public == True) | (VCTRegistry.user_id == user_id))
     else:
-        query = query.filter((VCTRegistry.is_public == True) | (VCTRegistry.user_id == current_user.id))
+        query = query.filter((VCTRegistry.is_public == True) | (VCTRegistry.user_id == user_id))
 
     if q:
         like = f"%{q.lower()}%"
@@ -627,12 +674,13 @@ def api_vct_ai_search():
         ranked_map = {rid: i for i, rid in enumerate(ranked_ids)}
         ranked = sorted(candidates, key=lambda r: ranked_map.get(r.id, 10**6))[:top_k]
 
+    def row_json(r: VCTRegistry):
         try:
             langs = json.loads(r.languages_supported or "[]")
         except Exception:
             langs = []
-
-    def row_json(r: VCTRegistry):
+        is_owner = (user_id is not None and r.user_id == user_id)
+        can_modify = bool(is_admin or is_owner)
         base = {
             "id": r.id,
             "name": r.name,
@@ -640,10 +688,12 @@ def api_vct_ai_search():
             "languages_supported": langs,
             "vct": r.vct,
             "vct_urn": r.vct_urn,
-            "integrity": r.integrity,  # keep available for copy button (not displayed)
+            "integrity": r.integrity,
             "is_public": r.is_public,
             "created_at": (r.created_at.isoformat() if r.created_at else None),
             "updated_at": (r.updated_at.isoformat() if r.updated_at else None),
+            "is_owner": is_owner,
+            "can_modify": can_modify,
         }
         base.update(_rating_payload(r, user_id=(current_user.id if is_auth else None)))
         if r.id in reasons:
@@ -653,3 +703,4 @@ def api_vct_ai_search():
         return base
 
     return jsonify([row_json(r) for r in ranked])
+
