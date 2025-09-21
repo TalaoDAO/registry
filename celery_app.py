@@ -2,6 +2,14 @@ import os
 from celery import Celery
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
+import env
+
+
+# ---- Environment / Mode ----
+# Environment variables are set in gunicornconf.py and used via utils.environment
+myenv = os.getenv("MYENV", "local")
+mode = env.currentMode(myenv)  # object with .server, .port, .flaskserver, etc.
+
 
 def create_app():
     from main import create_app as _create_app
