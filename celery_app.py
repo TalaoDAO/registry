@@ -11,6 +11,8 @@ myenv = os.getenv("MYENV", "local")
 mode = env.currentMode(myenv)  # object with .server, .port, .flaskserver, etc.
 
 
+print("mode.server = ", mode.server)
+
 def create_app():
     from main import create_app as _create_app
     app = _create_app()
