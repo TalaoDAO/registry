@@ -492,6 +492,69 @@ def api_generate_status(task_id: str):
     if r.info:
         out["meta"] = r.info
     return jsonify(out), 200
+@bp.route("/attestation/api/propose-name-desc", methods=["POST"])
+def api_propose_name_desc():
+    """
+    Accepts: {"issuer_url": "...", "config_id": "...", "vct_match": "..."}
+    Builds a draft VCT JSON for that config and returns {"name": "...", "description": "..."}
+    Uses _llm_name_desc() for proposals with safe fallbacks.
+    """
+    try:
+        data = request.get_json(force=True) or {}
+    except Exception:
+        return jsonify({"error": "invalid_json"}), 400
+
+    issuer_url = (data.get("issuer_url") or "").strip()
+    config_id = str(data.get("config_id") or "").strip()
+    vct_match = (data.get("vct_match") or "").strip() or None
+    if not issuer_url or not config_id:
+        return jsonify({"error": "missing_params"}), 400
+
+    try:
+        # Fetch issuer metadata and locate the desired config
+        meta = _issuer_metadata(issuer_url)
+        sd = _enumerate_sdjwt_configs(meta)
+        cfg = None
+        for cid, c in sd:
+            if str(cid) == config_id:
+                cfg = c
+                break
+        if cfg is None:
+            return jsonify({"error": "config_not_found"}), 404
+
+        # Build a draft VCT for that configuration
+        vct = generate_vc_type_metadata_from_issuer(
+            issuer=issuer_url,
+            vct=str(cfg.get("vct") or cfg.get("type") or config_id),
+            on_remote_vct="extends",
+            config_id=config_id,
+            vct_match=vct_match or cfg.get("vct"),
+        )
+
+        # Prefer any embedded English display first
+        name = _preferred_en_name(vct)
+        desc = (vct.get("description") or "").strip() or None
+
+        # Call LLM only for missing fields
+        need_llm = (not name) or (not desc)
+        if need_llm:
+            llm_name, llm_desc = _llm_name_desc(vct, have_name=bool(name))
+            if not name and llm_name: name = llm_name
+            if not desc and llm_desc: desc = llm_desc
+
+        # Final fallbacks
+        if not name:
+            base = str(vct.get("vct") or "VC Type").split("/")[-1].replace("_", " ").replace("-", " ").title()
+            name = base[:60]
+        if not desc:
+            sch = vct.get("schema") or {}
+            desc = sch.get("description") or sch.get("title") or "Verifiable Credential Type derived from issuer metadata."
+
+        return jsonify({"name": name, "description": desc})
+    except Exception as e:
+        return jsonify({"error": "server_error", "detail": str(e)}), 500
+
+
 
 # -----------------------------------------------------------------------------
 # Celery task registration for the WORKER process

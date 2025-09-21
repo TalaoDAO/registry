@@ -200,6 +200,10 @@
             <label>Selected VC configuration</label>
             <input id="selected-label" type="text" readonly placeholder="Nothing selected yet" />
             <div id="select-status" class="inline-status"></div>
+<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;">
+  <button type="button" class="secondary-btn" id="propose-btn" disabled>Propose name & description</button>
+  <span id="propose-status" class="inline-status"></span>
+</div>
 
             <details class="advanced">
               <summary>Advanced: Remote VCT handling</summary>
@@ -311,6 +315,8 @@
     const selectRow = document.getElementById('select-row');
     const selectedLabel = document.getElementById('selected-label');
     const selectStatus = document.getElementById('select-status');
+    const proposeBtn = document.getElementById('propose-btn');
+    const proposeStatus = document.getElementById('propose-status');
 
     const metaRow = document.getElementById('meta-row');
     const nameInput = document.getElementById('name');
@@ -469,9 +475,51 @@
       enable(metaRow, true);
     });
 
+    
+    // Propose Name & Description (explicit button)
+    proposeBtn.addEventListener('click', async () => {
+      proposeBtn.setAttribute('aria-disabled','true'); proposeBtn.disabled = true;
+      const issuer_url = issuerInput.value.trim();
+      const cfg = configSelect.value || '';
+      if (!issuer_url) { err(proposeStatus, 'Enter an issuer URL first.'); issuerInput.focus(); return; }
+      if (!cfg) { err(proposeStatus, 'Select a configuration first.'); configSelect.focus(); return; }
+      try {
+        overlayOn(true);
+        proposeStatus.textContent = 'Asking for a proposal…';
+        const vct_match = (configSelect.selectedOptions[0]?.dataset?.vct || undefined);
+        const r = await fetch('/attestation/api/propose-name-desc', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ issuer_url, config_id: cfg, vct_match })
+        });
+        const t = await r.text();
+        if (!r.ok) { throw new Error(t || 'Server error'); }
+        const o = JSON.parse(t);
+        if (o && typeof o === 'object') {
+          if (o.name) nameInput.value = o.name;
+          if (o.description) descriptionInput.value = o.description;
+          ok(proposeStatus, 'Proposal loaded ✓');
+          // ensure Step 3 looks done
+          setStep(s3, 'done'); setStep(s4, 'active');
+        } else {
+          throw new Error('Invalid response');
+        }
+      } catch (e) {
+        console.warn(e);
+        err(proposeStatus, e.message || 'Failed to get proposal');
+      } finally {
+        overlayOn(false);
+      }
+    });
     // Generate (Step 4)
     form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+      
+      // Require name & description before generating (user can type or use the Propose button)
+      const _name = nameInput.value.trim();
+      const _desc = descriptionInput.value.trim();
+      if (!_name){ err(selectStatus, 'Please enter a Name or click “Propose name & description”.'); nameInput.focus(); overlayOn(false); return; }
+      if (!_desc){ err(selectStatus, 'Please enter a Description or click “Propose name & description”.'); descriptionInput.focus(); overlayOn(false); return; }
+    e.preventDefault();
       statusEl.textContent = 'Generating…'; editorMsg.textContent = '';
       overlayOn(true);
 
@@ -587,6 +635,95 @@
         overlayOn(false);
       }
     });
-  </script>
+  
+// --- PATCHED JS FIXES ---
+
+// Utility: enable "Generate" button only if all required fields are filled
+function checkGenerateReady() {
+  const hasCfg = !!(configSelect.value || '');
+  const hasName = !!nameInput.value.trim();
+  const hasDesc = !!descriptionInput.value.trim();
+  generateBtn.disabled = !(hasCfg && hasName && hasDesc);
+}
+
+// Step 3 config select change handler
+configSelect.addEventListener('change', () => {
+  const opt = configSelect.selectedOptions[0];
+  if (!opt){ return; }
+  selectedLabel.value = opt.textContent || '';
+  ok(selectStatus, 'Configuration selected.');
+  setStep(s3, 'done'); setStep(s4, 'active');
+
+  // Enable propose button
+  proposeBtn.disabled = false;
+  proposeBtn.setAttribute('aria-disabled','false');
+  proposeStatus.textContent = '';
+
+  // Step 4 UI
+  enable(metaRow, true);
+
+  // Enable "Generate" if fields ready
+  checkGenerateReady();
+});
+
+// Name/description input events
+nameInput.addEventListener('input', () => { updatePreviewField('name', nameInput.value); checkGenerateReady(); });
+descriptionInput.addEventListener('input', () => { updatePreviewField('description', descriptionInput.value); checkGenerateReady(); });
+
+// Propose button handler
+proposeBtn.addEventListener('click', async () => {
+  proposeBtn.disabled = true;
+  proposeBtn.setAttribute('aria-disabled','true');
+
+  const issuer_url = issuerInput.value.trim();
+  const cfg = configSelect.value || '';
+
+  if (!issuer_url) {
+    err(proposeStatus, 'Enter an issuer URL first.'); issuerInput.focus();
+    proposeBtn.disabled = false; proposeBtn.setAttribute('aria-disabled','false'); return;
+  }
+  if (!cfg) {
+    err(proposeStatus, 'Select a configuration first.'); configSelect.focus();
+    proposeBtn.disabled = false; proposeBtn.setAttribute('aria-disabled','false'); return;
+  }
+
+  try {
+    overlayOn(true);
+    proposeStatus.textContent = 'Asking for a proposal…';
+    const vct_match = (configSelect.selectedOptions[0]?.dataset?.vct || undefined);
+    const r = await fetch('/attestation/api/propose-name-desc', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ issuer_url, config_id: cfg, vct_match })
+    });
+    const t = await r.text();
+    if (!r.ok) { throw new Error(t || 'Server error'); }
+    const o = JSON.parse(t);
+
+    if (o && typeof o === 'object') {
+      if (o.name) nameInput.value = o.name;
+      if (o.description) descriptionInput.value = o.description;
+      ok(proposeStatus, 'Proposal loaded ✓');
+      setStep(s3, 'done'); setStep(s4, 'active');
+      checkGenerateReady();
+    } else {
+      throw new Error('Invalid response');
+    }
+  } catch (e) {
+    console.warn(e);
+    err(proposeStatus, e.message || 'Failed to get proposal');
+  } finally {
+    proposeBtn.disabled = false;
+    proposeBtn.setAttribute('aria-disabled','false');
+    overlayOn(false);
+  }
+});
+
+// On load, disable generate until ready
+generateBtn.disabled = true;
+
+// --- END PATCHED JS ---
+
+</script>
 </body>
 </html>

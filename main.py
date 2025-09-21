@@ -91,7 +91,7 @@ def create_app() -> Flask:
         app.jinja_env.globals["Created"] = ""
 
     # ---- SQLAlchemy ----
-    db_path = os.getenv("SQLALCHEMY_DATABASE_URI") or ("sqlite:///" + os.path.abspath("data/connectors.db"))
+    db_path = os.getenv("SQLALCHEMY_DATABASE_URI") or ("sqlite:///" + os.path.abspath("data/registry.db"))
     app.config["SQLALCHEMY_DATABASE_URI"] = db_path
 
     # ---- App-wide config values (shared deps) ----

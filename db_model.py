@@ -20,7 +20,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(256),  unique=True)
     sub = db.Column(db.String(256),  unique=True)
     subscription = db.Column(db.String(256)) # free/....
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_login = db.Column(db.DateTime)
     usage_quota = db.Column(db.Integer, default=1000)
     organization = db.Column(db.String(256))
@@ -28,7 +28,8 @@ class User(UserMixin, db.Model):
     country = db.Column(db.String(64))
     signins = db.relationship("Signin", backref="user", lazy=True)
     role = db.Column(db.String(64), default="user")
-    profile_picture = db.Column(db.String(256), default ="default_picture.jpeg")  # stores filename or URL
+    profile_picture = db.Column(db.String(256), default ="default_picture.jpeg")  
+    deleted_at = db.Column(db.DateTime(timezone=True))# stores filename or URL
 
 
 # Flask-Login user loader
@@ -58,6 +59,7 @@ class VCTRegistry(db.Model):
     vct = db.Column(db.Text)                          # public URL (resolver)
     vct_urn = db.Column(db.Text)                      # original VCT identifier as an urn.
     integrity = db.Column(db.String(128), nullable=False, unique=True)
+    integrity_v2 = db.Column(db.String(256), index=True)
     # presentation
     name = db.Column(db.String(128))
     description = db.Column(db.Text)
@@ -74,11 +76,14 @@ class VCTRegistry(db.Model):
     ratings_sum = db.Column(db.Integer, default=0, nullable=False)
     avg_rating = db.Column(db.Float, default=0.0, nullable=False)
     # timestamps
-    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now, nullable=False)
-    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.now, onupdate=datetime.now, nullable=False)
-
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    deleted_at = db.Column(db.DateTime(timezone=True))
+    extra = db.Column(db.Text)
     __table_args__ = (
         Index('ix_vctregistry_owner_created', 'user_id', 'created_at'),
+        Index('ix_vctregistry_integrity_v2', 'integrity_v2'),
+        Index('ix_vctregistry_name', 'name'),
         Index('ix_vctregistry_public_created', 'is_public', 'created_at'),
         Index('ix_vctregistry_search_text', 'search_text'),
         Index('ix_vctregistry_calls', 'calls_count'),
@@ -90,8 +95,8 @@ class VCTRating(db.Model):
     vct_id = db.Column(db.Integer, db.ForeignKey("vct_registry.id"), nullable=False, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     stars = db.Column(db.Integer, nullable=False)  # 1..5
-    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now, nullable=False)
-    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.now, onupdate=datetime.now, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     __table_args__ = (
         UniqueConstraint('vct_id', 'user_id', name='uq_vct_rating_per_user'),
         CheckConstraint('stars BETWEEN 1 AND 5', name='ck_stars_range'),
@@ -166,14 +171,19 @@ class VCTImportLog(db.Model):
     error_message = db.Column(db.Text)
 
     raw_snapshot = db.Column(db.Text)  # full JSON of the config at the time of import
+    http_status = db.Column(db.String(16))
+    duration_ms = db.Column(db.Integer)
+    attempts = db.Column(db.Integer, default=0)
+    worker = db.Column(db.String(128))
 
-    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now, nullable=False)
-    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.now, onupdate=datetime.now, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         # Fast lookups and uniqueness guard:
         # same issuer + same config_id + same content_hash → already imported
-        # (we don't make it STRICT unique to allow manual repairs, but we index it)
+        # (we don't make it STRICT unique to allow manual repairs, but we index it
+        db.Index('ix_vctimport_status_created', 'status', 'created_at'),
         db.Index("ix_vctimport_unique", "issuer_url", "config_id", "config_hash"),
     )
 
@@ -289,3 +299,21 @@ def seed_user():
             db.session.add(robot)
         
         db.session.commit()
+
+
+class VCTRegistryLanguage(db.Model):
+    __tablename__ = "vct_registry_languages"
+    vct_id = db.Column(db.Integer, db.ForeignKey("vct_registry.id", ondelete="CASCADE"), primary_key=True)
+    lang_code = db.Column(db.String(16), primary_key=True)
+    __table_args__ = (
+        db.Index("ix_vct_registry_lang_code", "lang_code"),
+    )
+
+class VCTRegistryMeta(db.Model):
+    __tablename__ = "vct_registry_meta"
+    vct_id = db.Column(db.Integer, db.ForeignKey("vct_registry.id", ondelete="CASCADE"), primary_key=True)
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.Text)
+    __table_args__ = (
+        db.Index("ix_vct_registry_meta_key", "key"),
+    )
