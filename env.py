@@ -44,12 +44,10 @@ class currentMode:
         self.smtp_password = keys.get('smtp_password')
 
         # Define runtime behavior depending on environment
-        if self.myenv == 'aws':
+        if self.myenv in ['aws', 'AWS']:
             # Configuration for AWS environment
-            #self.port = 4000
             self.sys_path = '/home/admin'
             self.server = 'https://vc-registry.com/'
-            self.IP = '13.37.102.196'
         elif self.myenv == 'local':
             # Configuration for local development
             self.sys_path = '/home/thierry'
@@ -59,6 +57,8 @@ class currentMode:
         else:
             logging.error('Invalid environment setting. Choose either "aws" or "local".')
             sys.exit(1)
+        
+        logging.info("mode.server = %s", self.server)
             
     def debug_on(self):
         self.debug = True
