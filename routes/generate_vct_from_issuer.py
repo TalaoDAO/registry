@@ -336,10 +336,15 @@ def _upload_vct_json(vct_json: Dict[str, Any], *, publish: bool, owner: User) ->
     langs = _extract_languages_supported_from_vct(vct_json)
     keywords = ",".join(_extract_keywords(vct_json))
     search_text = _build_search_text(vct_json)
+    
+    # remove vct_urn from vct in database
+    vct_urn = vct_json.get("vct_urn")
+    vct_json.pop("vct_urn", None)
+    
     row = VCTRegistry(
         user_id=owner.id,
         vct=vct_json.get("vct"),
-        vct_urn=vct_json.get("vct_urn"),
+        vct_urn=vct_urn,
         integrity=integrity,
         name=name,
         description=vct_json.get("description") or "",

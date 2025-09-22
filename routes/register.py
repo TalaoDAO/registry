@@ -7,6 +7,7 @@ from db_model import User, db, Signin
 import logging
 from requests.exceptions import RequestException, HTTPError
 from utils.kms import encrypt_json, decrypt_json
+from utils import message
 
 ngrok =  "https://c8e7a2920835.ngrok.app"
 
@@ -47,7 +48,6 @@ def init_app(app, db):
     
     app.add_url_rule('/register/test',  view_func=register_test, methods=['GET', 'POST'])
     app.add_url_rule('/register/admin',  view_func=register_admin, methods=['GET', 'POST'])
-
     
 
 def register():
@@ -66,6 +66,7 @@ def login_with_google():
     return redirect(auth_uri)
 
 def register_google_callback(db):
+    mode = current_app.config["MODE"]
     google_config = requests.get(GOOGLE_DISCOVERY_URL).json()
     token_url, headers, body = google_client.prepare_token_request(
         google_config["token_endpoint"],
@@ -99,8 +100,11 @@ def register_google_callback(db):
     )
     db.session.add(new_user)
     db.session.commit()
+    try:
+        message.message("New user on VC Registry", "thierry.thevenet@talao.io", userinfo, mode)
+    except Exception as x:
+        logging.warning("message() failed: %s", x)
     login_user(new_user)
-    print("user has been created")
     return redirect("/menu")
 
 
@@ -108,7 +112,9 @@ def register_google_callback(db):
 def login_with_github():
     return redirect(f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={GITHUB_CALLBACK}&scope=user:email")
 
+
 def register_github_callback(db):
+    mode = current_app.config["MODE"]
     code = request.args.get("code")
     token_resp = requests.post(
         "https://github.com/login/oauth/access_token",
@@ -133,8 +139,11 @@ def register_github_callback(db):
     )
     db.session.add(new_user)
     db.session.commit()
+    try:
+        message.message("New user on VC Registry", "thierry.thevenet@talao.io", userinfo, mode)
+    except Exception as x:
+        logging.warning("message() failed: %s", x)
     login_user(new_user)
-    print("user has been created")
     return redirect("/menu")
 
 
