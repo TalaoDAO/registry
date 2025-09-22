@@ -112,6 +112,7 @@
                 <th style="width:7rem;">Name</th>
                 <th style="width:32rem;">Description</th>
                 <th style="width:10rem;">Languages</th>
+                  <th style="width:7rem;">Schema props</th>
                 <th style="width:14rem;">Popularity</th>
                 <th style="width:7rem;">Visible</th>
                 <th style="width:28rem;">Actions</th>
@@ -273,6 +274,12 @@
       }
       tdLang.appendChild(langWrap);
 
+
+      // Schema props count
+      const tdSchemaProps = document.createElement('td');
+      const count = Number(item.schema_props_count || 0);
+      tdSchemaProps.textContent = isNaN(count) ? '—' : String(count);
+
       const tdPop  = document.createElement('td'); tdPop.appendChild(renderStarsCell(item));
 
       const tdVis  = document.createElement('td');
@@ -324,7 +331,8 @@
 
       tr.appendChild(tdName);
       tr.appendChild(tdDescription);
-      tr.appendChild(tdLang);  
+      tr.appendChild(tdLang);
+      tr.appendChild(tdSchemaProps);   
       tr.appendChild(tdPop);
       tr.appendChild(tdVis);
       tr.appendChild(tdAct);

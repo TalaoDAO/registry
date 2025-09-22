@@ -153,7 +153,8 @@
     <nav>
       {% if not user.id %}
         <a href="https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-11.html#name-sd-jwt-vc-type-metadata" target="_blank" rel="noopener">IETF VC Type Metadata</a>
-      {% else %}
+      <a href="/menu">Login</a>
+        {% else %}
         <a href="/menu">Menu</a>
       {% endif %}
     </nav>
@@ -182,7 +183,7 @@
       <a class="btn btn-primary" href="/attestation/generate/issuer">Import from an Issuer</a>
       <a class="btn" href="/attestation/generate/scratch">Generate from Scratch</a>
       <a class="btn" href="/attestation/generate/schema">Import from a JSON Schema</a>
-      <a class="btn" href="/vct/registry/import">Import from a file</a>
+      <a class="btn" href="/vct/registry/import">Import from a File</a>
     </div>
   </section>
 
