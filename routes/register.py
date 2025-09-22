@@ -101,7 +101,7 @@ def register_google_callback(db):
     db.session.add(new_user)
     db.session.commit()
     try:
-        message.message("New user on VC Registry", "thierry.thevenet@talao.io", userinfo, mode)
+        message.message("New user on VC Registry", "thierry.thevenet@talao.io", json.dumps(userinfo), mode)
     except Exception as x:
         logging.warning("message() failed: %s", x)
     login_user(new_user)
@@ -140,7 +140,7 @@ def register_github_callback(db):
     db.session.add(new_user)
     db.session.commit()
     try:
-        message.message("New user on VC Registry", "thierry.thevenet@talao.io", userinfo, mode)
+        message.message("New user on VC Registry", "thierry.thevenet@talao.io", json.dumps(userinfo), mode)
     except Exception as x:
         logging.warning("message() failed: %s", x)
     login_user(new_user)
