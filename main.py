@@ -66,7 +66,7 @@ def create_app() -> Flask:
     myenv = os.getenv("MYENV", "local")
     mode = env.currentMode(myenv)  # object with .server, .port, .flaskserver, etc.
     mode.debug_on()
-   
+
     # Redis init red = redis.StrictRedis()
     red = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -84,7 +84,7 @@ def create_app() -> Flask:
     )
 
     # ---- App metadata / UI helpers ----
-    app.jinja_env.globals["Version"] = os.getenv("APP_VERSION", "0.1")
+    app.jinja_env.globals["Version"] = os.getenv("APP_VERSION", "0.2")
     try:
         app.jinja_env.globals["Created"] = os.path.getctime(__file__)
     except Exception:
@@ -114,7 +114,6 @@ def create_app() -> Flask:
     migrate.init_app(app, db) 
     Session(app)
     QRcode(app)
-    #Mobility(app)
 
     # ---- DB bootstrap / seed (idempotent) ----
     with app.app_context():
