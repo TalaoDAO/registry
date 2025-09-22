@@ -16,15 +16,34 @@
     .hero p{ margin:0; color:var(--sub); }
 
     .grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; margin-top:1rem; }
-    .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; display:grid; gap:.5rem; }
-    .card header{ display:flex; align-items:center; gap:.6rem; }
+
+    /* Card base */
+    .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; display:flex; flex-direction:column; gap:.5rem; }
+
+    /* Only style the page chrome header, not card headers */
+    .site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
+    .nav-group { display:flex; align-items:center; gap:1rem; }
+
+    /* Card header: keep the letter and title side-by-side */
+    .card > header{ display:flex; align-items:center; justify-content:flex-start; gap:.6rem; padding:0; border:0; background:transparent; }
+
     .mark{ width:28px; height:28px; border-radius:8px; background:var(--blue); color:#fff; display:grid; place-items:center; font-weight:800; font-family:'Roboto'; }
+
     .card h3{ margin:0; font-size:1.05rem; }
-    .card p{ margin:.25rem 0; color:var(--sub); }
+    .card p{ margin:.25rem 0; color:#374151; }
     ul{ margin:.25rem 0 0 1rem; color:#374151; }
     li{ margin:.25rem 0; }
     code{ font-family: ui-monospace, Menlo, Consolas, monospace; font-size:.95rem; }
-    .actions{ margin-top:.35rem; }
+
+    /* Actions row stays at the bottom of cards */
+    .actions{ margin-top:auto; }
     .btn{ display:inline-flex; align-items:center; gap:.35rem; padding:.6rem .8rem; border-radius:8px; font-weight:600; text-decoration:none; border:1px solid #c7d2fe; background:#edf2ff; color:#1f3b8a; }
     .btn:hover{ background:#e0e7ff; }
     .btn-primary{ background:var(--blue); border-color:var(--blue); color:#fff; }
@@ -32,39 +51,10 @@
 
     .tip{ font-size:.9rem; color:var(--sub); margin-top:.25rem; }
 
-    header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-  }
-  .nav-group {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  /* Make cards stack vertically and push the actions row down */
-  .card{
-    display:flex;
-    flex-direction:column;
-  }
-
-  /* Ensure the button row sits at the bottom of every card */
-  .card .actions{
-    margin-top:auto;   /* pushes it down */
-    order:3;           /* make it the last block */
-  }
-
-  /* Put tips (if any) above the button row so they don't offset alignment */
-  .card .tip{
-    order:2;
-  }
-
-
     @media (prefers-color-scheme: dark) {
       :root{ --surface:#1f1f1f; --border:#2a2a2a; --sub:#9aa0a6; }
       body{ background:#0f1113; color:#e8eaed; }
+      .site-header{ background:#141618; }
       .btn{ background:#0f172a; color:#cbd5e1; border-color:#334155; }
       .btn:hover{ background:#111b2e; }
       .btn-primary{ background:#2563eb; border-color:#2563eb; color:#fff; }
@@ -73,27 +63,27 @@
   </style>
 </head>
 <body>
-  <header>
-  <div>
-    <strong><a href="/" style="color: var(--primary); text-decoration: none;">VC-REGISTRY.COM</a></strong>
-  </div>
-  <div class="nav-group">
-    <nav>
-      <a href="/documentation/menu" target="_blank" rel="noopener">Explain ?</a>
-    </nav>
-    {% include "account.html" %}
-  </div>
-</header>
+  <header class="site-header">
+    <div>
+      <strong><a href="/" style="color: var(--primary); text-decoration: none;">VC-REGISTRY.COM</a></strong>
+    </div>
+    <div class="nav-group">
+      <nav>
+        <a href="/documentation/menu" target="_blank" rel="noopener">Explain ?</a>
+      </nav>
+      {% include "account.html" %}
+    </div>
+  </header>
 
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <div class="flashes" role="status">
-        {% for message in messages %}
-          <p>{{ message }}</p>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flashes" role="status">
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
 
   <main>
     <section class="hero">
@@ -114,7 +104,6 @@
           <li>Supports OIDC4VCI drafts 11 to final</li>
         </ul>
         <div class="actions"><a class="btn-primary btn" href="/attestation/generate/issuer">Import from Issuer →</a></div>
-        <div class="tip">Tip: You can choose the specific credential after pressing <em>Load</em> in the form.</div>
       </article>
 
       <!-- 2) From JSON Schema -->
@@ -140,31 +129,48 @@
         </header>
         <p>Describe your credential and target languages; we’ll help you draft the <code>schema</code> and <code>display[]</code>.</p>
         <ul>
-          <li>Free‑form description to schema</li>
-          <li>30‑language labels supported</li>
+          <li>Free-form description to schema</li>
+          <li>30-language labels supported</li>
           <li>AI Assisted</li>
-
         </ul>
-        <div class="actions"><a class="btn btn-primary" href="/attestation/generate/scratch">Start Blank →</a></div>
+        <div class="actions">
+          <a class="btn btn-primary" href="/attestation/generate/scratch">Start Blank →</a>
+        </div>
+      </article>
+
+      <!-- 4) From file -->
+      <article class="card">
+        <header>
+          <div class="mark" aria-hidden="true">F</div>
+          <h3>Import from File</h3>
+        </header>
+        <p>If you already have your VC Type metadata, upload it to the registry in 1 click. <code>VC Type Url and integrity</code> will be calculated and added.</p>
+        <ul>
+          <li>Instant uploading</li>
+          <li>Integrity and URL provided</li>
+        </ul>
+        <div class="actions">
+          <a class="btn btn-primary" href="/vct/registry/import">Import from File →</a>
+        </div>
       </article>
     </section>
 
     <section class="grid" aria-label="Registry">
-      <!-- 4) Register a VCT -->
+      <!-- Register / Manage -->
       <article class="card">
         <header>
           <div class="mark" aria-hidden="true">R</div>
           <h3>Manage your VC Types</h3>
         </header>
-        <p>publish or delete your VC.</p>
+        <p>Publish or delete your VC Types.</p>
         <ul>
           <li>Computes integrity (<code>sha256‑…</code>)</li>
           <li>Name & description required for registry</li>
         </ul>
-        <div class="actions"><a class="btn btn-primary" href="/vct/registry/manage">Open your Registry Workspace→</a></div>
+        <div class="actions"><a class="btn btn-primary" href="/vct/registry/manage">Open your Registry Workspace →</a></div>
       </article>
 
-      <!-- 5) Browse the registry -->
+      <!-- Browse the registry -->
       <article class="card">
         <header>
           <div class="mark" aria-hidden="true">B</div>
