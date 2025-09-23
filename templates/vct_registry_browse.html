@@ -329,6 +329,18 @@
         });
         tdActions.appendChild(copyIntBtn);
 
+
+        // NEW: Extend button → pass row_id and integrity for extends#integrity
+        const ext = document.createElement('a');
+        ext.className = 'secondary-btn';
+        ext.textContent = 'Extend this VCT';
+        ext.href = `/vct/registry/extend?row_id=${encodeURIComponent(item.id)}&integrity=${encodeURIComponent(item.integrity||'')}`;
+        ext.title = 'Create a child VCT that extends this one';
+        //actions.appendChild(ext);
+
+        tdActions.appendChild(ext);
+
+
         // Disable buttons when values are missing
         if (!item.vct) copyVctBtn.disabled = true;
         if (!item.integrity) copyIntBtn.disabled = true;

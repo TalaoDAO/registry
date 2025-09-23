@@ -391,7 +391,14 @@ def api_vct_list():
 
     if has_schema:
         query = query.filter((VCTRegistry.schema_hash.isnot(None)) & (VCTRegistry.schema_hash != ""))
-
+    
+    def _pop_score(r: VCTRegistry) -> float:
+        rating = float(r.avg_rating or 0.0) / 5.0
+        max_calls = max([rr.calls_count or 0 for rr in rows] or [1])
+        calls = float(r.calls_count or 0)
+        pop = (calls / max_calls) if max_calls else 0.0
+        return round(0.6 * rating + 0.4 * pop, 4)
+    
     # Sorting
     sort = (request.args.get("sort") or "").lower()
     if sort == "rating":
@@ -407,13 +414,9 @@ def api_vct_list():
             query = query.order_by(VCTRegistry.created_at.desc())
 
     rows = query.limit(500).all()
-
-    def _pop_score(r: VCTRegistry) -> float:
-        rating = float(r.avg_rating or 0.0) / 5.0
-        max_calls = max([rr.calls_count or 0 for rr in rows] or [1])
-        calls = float(r.calls_count or 0)
-        pop = (calls / max_calls) if max_calls else 0.0
-        return round(0.6 * rating + 0.4 * pop, 4)
+    # If popularity is requested, sort in Python using computed score (rating+calls)
+    if sort == "pop":
+        rows = sorted(rows, key=_pop_score, reverse=True)
 
     is_owner_id = getattr(current_user, "id", None) if is_auth else None
     def row_json(r: VCTRegistry):
