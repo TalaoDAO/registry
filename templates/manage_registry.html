@@ -314,6 +314,14 @@
       tdAct.appendChild(copyIntBtn);
       if (score.textContent) tdAct.appendChild(score);
 
+      // Extend button → pass row_id and integrity
+      const ext = document.createElement('a');
+      ext.className = 'secondary-btn';
+      ext.textContent = 'Extend this VCT';
+      ext.href = `/vct/registry/extend?row_id=${encodeURIComponent(item.id)}&integrity=${encodeURIComponent(item.integrity||'')}`;
+      ext.title = 'Create a child VCT that extends this one';
+      tdAct.appendChild(ext);
+
       if (item.can_modify !== false) {
         const del = document.createElement('button'); del.type='button'; del.className='secondary-btn'; del.textContent='Delete';
         del.addEventListener('click', async () => {

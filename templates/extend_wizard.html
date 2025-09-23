@@ -22,6 +22,10 @@
     .subtitle { margin:0; font-size:.9rem; color:var(--subtext); font-weight:400; }
 
     .card-body { padding:1.25rem; display:grid; gap:1rem; }
+    .card-body table td,
+    .card-body table th {
+        padding: 0.6rem 0.6rem;
+    }
     .grid { display:grid; grid-template-columns: 1fr; gap:1rem; }
     .row { display:grid; gap:.5rem; }
     label { font-weight:600; color:#1f2937; }
@@ -37,6 +41,12 @@
       padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
       font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
     }
+    .compact-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        line-height: 1.0;
+        border-radius: 6px;
+      }
     .primary-btn { background:var(--google-blue); color:#fff; }
     .primary-btn:hover { background:var(--google-blue-dark); }
     .secondary-btn { background:#edf2ff; color:#1f3b8a; border:1px solid #c7d2fe; }
@@ -168,10 +178,10 @@
 
           <!-- Step 4: Name / description + editor -->
           <div class="row" id="meta-row" aria-disabled="true">
-            <label for="name">New VCT name</label>
-            <input id="name" type="text" placeholder="Short name (required for upload)" required>
-            <label for="description">New VCT description</label>
-            <input id="description" type="text" placeholder="Description (required for upload)" required>
+            <label for="name">New VCT name (required)</label>
+            <input id="name" type="text" placeholder="Short name " required>
+            <label for="description">New VCT description (required)</label>
+            <input id="description" type="text" placeholder="Description " required>
           </div>
 
           <div class="actions">
@@ -179,7 +189,9 @@
             <span class="spacer"></span>
             <button type="button" class="primary-btn" id="download-btn" disabled>Save to Desktop</button>
             <button type="button" class="primary-btn" id="upload-btn" disabled>Upload to Registry</button>
-            <span id="status" class="note editor-status"></span>
+            <span id="status" class="note editor-status"></span>      
+            <div class="note">This extended VCT will include only the claims you overridden or added. All other claim metadata will be inherited from the base.</div>
+
           </div>
 
           <div class="row editor-wrap" id="editor-wrap" style="display:none;">
@@ -426,6 +438,7 @@
         overridesWrap.innerHTML = '<span class="note">No claim metadata found in base (you can still add new claims).</span>';
         return;
       }
+    
       const tbl = document.createElement('table');
       tbl.style.width='100%'; tbl.style.borderCollapse='collapse';
       tbl.innerHTML = '<thead><tr><th>Claim Path</th><th>Label(s)</th><th>SD</th><th>Action</th></tr></thead>';
@@ -436,7 +449,7 @@
         const labels = Array.isArray(c.display) ? c.display.map(d=>`${d.lang||'—'}:${d.label||''}`).join(', ') : '';
         tr.innerHTML = `<td class="mono">${k}</td><td>${labels}</td><td>${c.sd||'allowed'}</td>`;
         const td = document.createElement('td');
-        const btn = document.createElement('button'); btn.className='secondary-btn'; btn.type='button'; btn.textContent='Override…';
+        const btn = document.createElement('button'); btn.className='secondary-btn compact-btn'; btn.type='button'; btn.textContent='Override…';
         btn.addEventListener('click', ()=>{
           const lang = prompt(`Language code for ${k} (e.g., en)`, 'en') || 'en';
           const newLabel = prompt(`Override label for ${k} (lang=${lang}):`, (Array.isArray(c.display)&&c.display[0]?.label)||'');
@@ -522,49 +535,48 @@
       const description = descInput.value.trim();
       if (!name || !description) throw new Error('Name and description required');
 
-      const baseClaims = Array.isArray(baseDoc.claims) ? JSON.parse(JSON.stringify(baseDoc.claims)) : [];
-      const byPath = new Map();
-      baseClaims.forEach(c => byPath.set(pathKey(c.path||[]), c));
+      const baseClaims = Array.isArray(baseDoc.claims) ? baseDoc.claims : [];
+      const baseByPath = new Map(baseClaims.map(c => [ (c.path||[]).join('/'), c ]));
 
-      // apply overrides
-      Object.entries(overrides).forEach(([k,ov])=>{
-        const proto = byPath.get(k) || { path: ov.path };
-        const out = { path: proto.path, sd: ov.sd || proto.sd, display: [] };
-        const baseDisp = Array.isArray(proto.display) ? proto.display : [];
+      // 1) Materialize overrides as full objects for only the overridden paths
+      const out = [];
+
+      Object.entries(overrides).forEach(([k, ov]) => {
+        const proto = baseByPath.get(k);
+        if (!proto) return; // safety: ignore overrides for missing path
+        // Start from base object to keep existing languages/sd, then apply per-lang overrides
         const dispByLang = new Map();
-        baseDisp.forEach(d => dispByLang.set(d.lang, { ...d }));
-        ov.display.forEach(d => dispByLang.set(d.lang, { ...d }));
-        out.display = Array.from(dispByLang.values());
-        byPath.set(k, out);
+        (Array.isArray(proto.display) ? proto.display : []).forEach(d => dispByLang.set(d.lang, { ...d }));
+        (Array.isArray(ov.display) ? ov.display : []).forEach(d => dispByLang.set(d.lang, { ...d }));
+        const merged = {
+          path: Array.isArray(proto.path) ? proto.path : (ov.path || []),
+          sd: ov.sd || proto.sd,               // keep base sd unless user changed it
+          display: Array.from(dispByLang.values())
+        };
+        out.push(merged);
       });
 
-      // merge new claims
-      newClaims.forEach(nc=>{
-        const k = pathKey(nc.path);
-        const existing = byPath.get(k);
-        if (!existing){
-          byPath.set(k, { path: nc.path, display: nc.display, sd: nc.sd || 'allowed' });
-        } else {
-          const dispByLang = new Map();
-          (Array.isArray(existing.display)?existing.display:[]).forEach(d => dispByLang.set(d.lang, { ...d }));
-          (Array.isArray(nc.display)?nc.display:[]).forEach(d => dispByLang.set(d.lang, { ...d }));
-          existing.display = Array.from(dispByLang.values());
-          byPath.set(k, existing);
-        }
+      // 2) Add new claims as-is (they don’t exist in base)
+      newClaims.forEach(nc => {
+        out.push({
+          path: nc.path,
+          sd: nc.sd || 'allowed',
+          display: Array.isArray(nc.display) ? nc.display : []
+        });
       });
 
-      const outClaims = Array.from(byPath.values());
-
-      // output VCT doc
+      // 3) Build final Type Metadata: only delta in `claims`
       return {
         vct: makeDraftVct(name),
-        name, description,
+        name,
+        description,
         extends: baseDoc.vct || '',
-        ...(baseIntegrity ? {'extends#integrity': baseIntegrity} : {}),
-        display: baseDoc.display || [],
-        claims: outClaims
+        ...(baseIntegrity ? { 'extends#integrity': baseIntegrity } : {}),
+        // NOTE: no type-level `display` copy; only include it later if you add UI for it
+        claims: out
       };
     }
+
 
     $('generate-btn').addEventListener('click', ()=>{
       try{
