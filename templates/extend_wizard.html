@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Extend VC Type — Wizard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+  <style>
+    :root{ --google-blue:#1a73e8; --google-blue-dark:#1558b0; --surface:#ffffff; --border:#e3e3e3;
+           --text:#202124; --subtext:#5f6368; --bg:#f8f9fa; --ok:#166534; --err:#991b1b; }
+    body { margin:0; background:#f7f9fc; color:#333; font-family: Arial, sans-serif; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:#fff; }
+    .nav-group{ display:flex; align-items:center; gap:1rem; }
+
+    .section { max-width:1200px; margin:2.5rem auto; padding:0 2rem; }
+    .card { width:100%; max-width:1100px; margin:0 auto; background:var(--surface); border:1px solid var(--border);
+            border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.06); overflow:hidden; }
+    .card-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+    .app-mark { width:28px; height:28px; border-radius:6px; background:var(--google-blue); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.95rem; }
+    .title { margin:0; font-size:1rem; font-weight:700; font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .subtitle { margin:0; font-size:.9rem; color:var(--subtext); font-weight:400; }
+
+    .card-body { padding:1.25rem; display:grid; gap:1rem; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:1rem; }
+    .row { display:grid; gap:.5rem; }
+    label { font-weight:600; color:#1f2937; }
+    input[type="text"], input[type="url"], select {
+      width:100%; padding:.7rem .85rem; border:1px solid var(--border); border-radius:8px; font-size:.95rem; background:#fff;
+    }
+    .note { color:var(--subtext); font-size:.9rem; }
+    .actions { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+    .actions .spacer { flex:1 1 auto; }
+
+    .primary-btn, .secondary-btn, .ghost-btn {
+      appearance:none; border:none; cursor:pointer; text-decoration:none;
+      padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
+      font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    }
+    .primary-btn { background:var(--google-blue); color:#fff; }
+    .primary-btn:hover { background:var(--google-blue-dark); }
+    .secondary-btn { background:#edf2ff; color:#1f3b8a; border:1px solid #c7d2fe; }
+    .ghost-btn { background:transparent; color:#111827; border:1px dashed var(--border); }
+
+    .inline-status{font-size:.85rem;margin-top:.25rem}
+    .ok{color:#166534}
+    .err{color:#991b1b}
+
+    .editor-wrap { display:grid; gap:.5rem; }
+    .editor-status { font-size:.85rem; color:var(--subtext); }
+    .editor { width:100%; height:520px; border:1px solid var(--border); border-radius:12px; padding:.75rem .9rem;
+      background:#0b1020; color:#e6edf3; font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size:.92rem; line-height:1.4; tab-size:2; white-space:pre; overflow:auto; }
+
+    .overlay { position:fixed; inset:0; background:rgba(255,255,255,.7); backdrop-filter: blur(2px);
+               display:none; align-items:center; justify-content:center; z-index:50; }
+    .spinner { width:46px; height:46px; border-radius:999px; border:4px solid #d1d5db; border-top-color:var(--google-blue);
+               animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin:0 0 1rem}
+    .step{display:flex;align-items:center;gap:.6rem;padding:.6rem .7rem;border:1px solid var(--border);border-radius:10px;background:#fff}
+    .step[data-state="done"]{border-color:#16a34a;background:#f0fdf4}
+    .step[data-state="active"]{border-color:var(--google-blue);box-shadow:0 0 0 2px rgba(26,115,232,.08)}
+    .step-badge{width:26px;height:26px;border-radius:999px;display:inline-grid;place-items:center;font-weight:700;background:#e5e7eb}
+    .step[data-state="done"] .step-badge{background:#16a34a;color:#fff}
+    .step[data-state="active"] .step-badge{background:var(--google-blue);color:#fff}
+    .step-title{font-weight:700}
+    .step-hint{font-size:.85rem;color:var(--subtext)}
+
+    /* Modal base styles */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:60; }
+    .modal { width:min(860px, calc(100vw - 2rem)); background:#fff; border-radius:14px; border:1px solid var(--border); box-shadow:0 20px 60px rgba(0,0,0,.35); }
+    .modal header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:#fff; }
+    .modal h3 { margin:0; font-size:1.05rem; }
+    .modal .body { padding:1rem 1.25rem; display:grid; gap:.75rem; }
+    .modal footer { padding:1rem 1.25rem; display:flex; gap:.5rem; justify-content:flex-end; border-top:1px solid var(--border); }
+    .table { width:100%; border-collapse:collapse; }
+
+    /* Scrollable results while keeping columns aligned */
+    .picker-scroll { max-height:300px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; }
+    #picker-table { width:100%; border-collapse:collapse; }
+    #picker-table th, #picker-table td { border-bottom:1px solid var(--border); padding:.6rem .4rem; text-align:left; }
+    #picker-table thead th { position:sticky; top:0; background:#fff; z-index:1; }
+
+    .chips{display:flex;gap:.25rem;flex-wrap:wrap}
+    .chip{border:1px solid var(--border);padding:.15rem .4rem;border-radius:999px;font-size:.8rem}
+
+    @media (prefers-color-scheme: dark) {
+      :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
+      input[type="text"], input[type="url"], select { background:#151617; color:#e8eaed; }
+      .secondary-btn { background:#0f172a; color:#cbd5e1; border:1px solid #334155; }
+      .ghost-btn { color:#cbd5e1; border-color:#334155; }
+      header{ background:#141618; }
+      .step{background:#1b1d20}
+      .modal { background:#141618; }
+      .modal header { background:#141618; border-color:#2a2a2a; }
+      .modal footer { border-color:#2a2a2a; }
+      #picker-table thead th { background:#141618; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong><a style="text-decoration: none;" href="/">VC-REGISTRY.COM</a></strong></div>
+    <div class="nav-group">
+      <nav>
+        <a href="/menu">Menu</a>
+        <a href="/documentation/extend_wizard" target="_blank" rel="noopener">Explain ?</a>
+      </nav>
+      {% include "account.html" %}
+    </div>
+  </header>
+
+  <main class="section">
+    <h1 style="text-align:center; margin:0 0 .5rem 0;">Extend an Existing VC Type</h1>
+    <p class="note" style="text-align:center; margin:0 0 1.25rem 0;">Pick a base VCT, override claim display, and add new claims. Then publish.</p>
+
+    <article class="card">
+      <header class="card-header">
+        <div class="app-mark">E</div>
+        <div>
+          <h2 class="title">Extension Wizard</h2>
+          <p class="subtitle">1) Choose base · 2) Overrides · 3) Add claims · 4) Generate & Publish</p>
+        </div>
+      </header>
+
+      <section class="card-body">
+        <div class="stepper" aria-label="Progress">
+          <div class="step" id="s1" data-state="active"><div class="step-badge">1</div><div><div class="step-title">Base VCT</div><div class="step-hint">Pick or prefilled</div></div></div>
+          <div class="step" id="s2" data-state="idle"><div class="step-badge">2</div><div><div class="step-title">Overrides</div><div class="step-hint">Edit labels/settings</div></div></div>
+          <div class="step" id="s3" data-state="idle"><div class="step-badge">3</div><div><div class="step-title">New Claims</div><div class="step-hint">Add properties</div></div></div>
+          <div class="step" id="s4" data-state="idle"><div class="step-badge">4</div><div><div class="step-title">Generate</div><div class="step-hint">Preview & upload</div></div></div>
+        </div>
+
+        <form id="wizard" class="grid" autocomplete="off">
+          <!-- Step 1 -->
+          <div class="row">
+            <label>Base VCT</label>
+            <div class="actions">
+              <!-- Hidden internal id; users never see it -->
+              <input id="base_row_id" type="hidden">
+              <button type="button" class="secondary-btn" id="select-base-btn">Select Base VCT</button>
+              <span id="base-status" class="inline-status"></span>
+            </div>
+            <label for="base_vct_name">Base VCT name</label>
+            <input id="base_vct_name" type="text" readonly placeholder="(not selected)">
+          </div>
+
+          <!-- Step 2: Overrides -->
+          <div class="row" id="overrides-row" aria-disabled="true">
+            <label>Overrides</label>
+            <div id="overrides-wrap" class="note">After selecting a base, click a claim to override its display metadata.</div>
+          </div>
+
+          <!-- Step 3: Add new claims -->
+          <div class="row" id="add-claims-row" aria-disabled="true">
+            <label>Add a new claim</label>
+            <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+              <input id="new-claim-path" type="text" placeholder='Path e.g. "nationalities" or "address.city"' />
+              <input id="new-claim-label" type="text" placeholder='Display label' />
+              <input id="new-claim-lang" type="text" value="en" style="max-width:120px" title="BCP-47 code" placeholder="lang e.g. en">
+              <button type="button" class="ghost-btn" id="add-claim-btn">+ Add</button>
+            </div>
+            <div class="note">Tip: add the same path again with another language code to include multiple labels for one claim.</div>
+            <div id="new-claims-list" class="note"></div>
+          </div>
+
+          <!-- Step 4: Name / description + editor -->
+          <div class="row" id="meta-row" aria-disabled="true">
+            <label for="name">New VCT name</label>
+            <input id="name" type="text" placeholder="Short name (required for upload)" required>
+            <label for="description">New VCT description</label>
+            <input id="description" type="text" placeholder="Description (required for upload)" required>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="primary-btn" id="generate-btn" disabled>Generate Extended VCT</button>
+            <span class="spacer"></span>
+            <button type="button" class="primary-btn" id="download-btn" disabled>Save to Desktop</button>
+            <button type="button" class="primary-btn" id="upload-btn" disabled>Upload to Registry</button>
+            <span id="status" class="note editor-status"></span>
+          </div>
+
+          <div class="row editor-wrap" id="editor-wrap" style="display:none;">
+            <label for="editor">Editable JSON</label>
+            <div id="editor" class="editor" contenteditable="true" spellcheck="false" aria-multiline="true"></div>
+          </div>
+        </form>
+      </section>
+    </article>
+  </main>
+
+  <!-- loading overlay -->
+  <div class="overlay" id="overlay"><div><div class="spinner" aria-hidden="true"></div></div></div>
+
+  <!-- upload result modal -->
+  <div class="modal-backdrop" id="upload-modal" aria-hidden="true">
+    <div class="modal">
+      <header><h3>VCT published to Registry</h3><button type="button" class="ghost-btn" id="modal-close">Close</button></header>
+      <div class="body">
+        <div class="field"><label>VCT URL</label><input id="modal-vct" type="text" readonly></div>
+        <div class="field"><label>Integrity (SRI)</label><input id="modal-int" type="text" readonly></div>
+        <div class="field"><label>VCT URN</label><input id="modal-urn" type="text" readonly></div>
+      </div>
+      <footer>
+        <button type="button" class="primary-btn" id="modal-open">Open VCT</button>
+        <button type="button" class="primary-btn" id="modal-ok">Done</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Base picker modal (scrollable) -->
+  <div class="modal-backdrop" id="picker-modal" aria-hidden="true">
+    <div class="modal">
+      <header>
+        <h3>Select Base VCT</h3>
+        <button type="button" class="ghost-btn" id="picker-close">Close</button>
+      </header>
+      <div class="body">
+        <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+          <input id="picker-q" type="text" placeholder="Search name, keywords, properties…" style="flex:1;">
+          
+          <select id="picker-sort" title="Sort">
+            <option value="">Sort</option>
+            <option value="newest">Newest</option>
+            <option value="name">Name</option>
+            <option value="rating">Rating</option>
+            <option value="calls">Popularity (calls)</option>
+            <option value="pop">Overall Popularity</option>
+          </select>
+          <button type="button" class="secondary-btn" id="picker-search">Search</button>
+          <button type="button" class="ghost-btn" id="picker-reset">Reset</button>
+        </div>
+        <div id="picker-status" class="note"></div>
+
+        <div class="picker-scroll">
+          <table class="table" id="picker-table">
+            <thead>
+              <tr>
+                <th style="width:36%;">Name</th>
+                <th>Description</th>
+                <th style="width:16%;">Langs</th>
+                <th style="width:16%;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="picker-rows"></tbody>
+          </table>
+        </div>
+      </div>
+      <footer>
+        <span class="note" id="picker-hint">Showing public VCTs. Search narrows results.</span>
+      </footer>
+    </div>
+  </div>
+
+  {% include "footer.html" %}
+
+  <script>
+    // --- helpers
+    const $ = (id) => document.getElementById(id);
+    const qs = new URLSearchParams(location.search);
+    const overlay = $('overlay');
+    function overlayOn(b){ overlay.style.display = b ? 'flex' : 'none'; }
+    function ok(el, msg){ el.textContent = msg||''; el.className = 'inline-status ok'; }
+    function err(el, msg){ el.textContent = msg||''; el.className = 'inline-status err'; }
+
+    // stepper
+    const s1=$('s1'), s2=$('s2'), s3=$('s3'), s4=$('s4');
+    function setStep(el, state){ el.dataset.state = state; }
+
+    // UI elements
+    const baseRowId = $('base_row_id');          // hidden
+    const baseStatus = $('base-status');
+    const baseNameEl = $('base_vct_name');       // visible friendly name
+    const selectBaseBtn = $('select-base-btn');
+    const overridesRow = $('overrides-row');
+    const overridesWrap = $('overrides-wrap');
+    const addClaimsRow = $('add-claims-row');
+    const nameInput = $('name');
+    const descInput = $('description');
+    const generateBtn = $('generate-btn');
+    const downloadBtn = $('download-btn');
+    const uploadBtn = $('upload-btn');
+    const editorWrap = $('editor-wrap');
+    const editor = $('editor');
+    const statusEl = $('status');
+    const addClaimBtn = $('add-claim-btn');
+    const newClaimPath = $('new-claim-path');
+    const newClaimLabel = $('new-claim-label');
+    const newClaimLang = $('new-claim-lang');
+    const newClaimsList = $('new-claims-list');
+
+    // upload modal
+    const modal = $('upload-modal');
+    const modalClose = $('modal-close');
+    const modalOk = $('modal-ok');
+    const modalOpen = $('modal-open');
+    const modalVct = $('modal-vct');
+    const modalInt = $('modal-int');
+    const modalUrn = $('modal-urn');
+    function showUploadModal(){ modal.style.display = 'flex'; modal.setAttribute('aria-hidden','false'); }
+    function hideUploadModal(){ modal.style.display = 'none'; modal.setAttribute('aria-hidden','true'); }
+    [modalClose, modalOk].forEach(b => b.addEventListener('click', hideUploadModal));
+    modalOpen.addEventListener('click', ()=>{ const u = modalVct.value.trim(); if(u) window.open(u, '_blank', 'noopener'); });
+
+    // picker modal
+    const picker = $('picker-modal');
+    const pickerClose = $('picker-close');
+    const pickerQ = $('picker-q');
+    const pickerSort = $('picker-sort');
+    const pickerSearch = $('picker-search');
+    const pickerReset = $('picker-reset');
+    const pickerRows = $('picker-rows');
+    const pickerStatus = $('picker-status');
+    function showPicker(){ picker.style.display = 'flex'; picker.setAttribute('aria-hidden','false'); pickerQ.focus(); }
+    function hidePicker(){ picker.style.display = 'none'; picker.setAttribute('aria-hidden','true'); }
+    pickerClose.addEventListener('click', hidePicker);
+
+    // state
+    let baseDoc = null;
+    let baseIntegrity = qs.get('integrity') || '';
+    let overrides = {};      // pathKey -> { path, display:[{lang,label,description?}], sd? }
+    let newClaims = [];      // array of { path:[], display:[...], sd? }
+
+    // if navigated with ?row_id=..., still works
+    if (qs.get('row_id')) baseRowId.value = qs.get('row_id');
+
+    function pathKey(pathArray){ return (pathArray||[]).join('/'); }
+
+    function getBaseName(doc){
+      if (doc.name) return doc.name;
+      const disp = Array.isArray(doc.display) ? doc.display : [];
+      const en = disp.find(d => (d.lang||'').toLowerCase().startsWith('en') && d.name);
+      if (en && en.name) return en.name;
+      const any = disp.find(d => d.name);
+      if (any && any.name) return any.name;
+      return doc.vct || '(unknown)';
+    }
+
+    // ---------- Base picker ----------
+    function renderPickerRows(items){
+      pickerRows.innerHTML = '';
+      if (!Array.isArray(items) || !items.length){
+        pickerRows.innerHTML = `<tr><td colspan="4"><span class="note">No results. Try another query.</span></td></tr>`;
+        return;
+      }
+      items.forEach(item=>{
+        const tr = document.createElement('tr');
+
+        // name
+        const tdName = document.createElement('td');
+        tdName.textContent = item.name || '(unnamed)';
+
+        // description
+        const tdDesc = document.createElement('td');
+        tdDesc.textContent = item.description || '';
+
+        // langs
+        const tdLangs = document.createElement('td');
+        const langs = Array.isArray(item.languages_supported) ? item.languages_supported : [];
+        if (langs.length){
+          const wrap = document.createElement('div'); wrap.className='chips';
+          langs.slice(0,6).forEach(l => { const c = document.createElement('span'); c.className='chip'; c.textContent = l; wrap.appendChild(c); });
+          tdLangs.appendChild(wrap);
+        } else {
+          tdLangs.innerHTML = '<span class="note">—</span>';
+        }
+
+        // action
+        const tdAct = document.createElement('td');
+        const pick = document.createElement('button');
+        pick.type='button'; pick.className='secondary-btn'; pick.textContent='Select';
+        pick.addEventListener('click', async ()=>{
+          baseRowId.value = item.id;                        // hidden internal id
+          baseNameEl.value = item.name || '(unnamed)';      // visible friendly name
+          hidePicker();
+          await loadBase();                                  // immediately load
+        });
+        tdAct.appendChild(pick);
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdDesc);
+        tr.appendChild(tdLangs);
+        tr.appendChild(tdAct);
+        pickerRows.appendChild(tr);
+      });
+    }
+
+    let pickerItems = []; // optional cache if you want to reuse results
+
+    async function fetchPicker(){
+      pickerStatus.textContent = 'Loading…';
+      try{
+        const p = new URLSearchParams();
+        p.set('scope','public');
+        const q = pickerQ.value.trim(); if (q) p.set('q', q);
+        const s = pickerSort.value.trim(); if (s) p.set('sort', s);   // <— pass through to backend
+        const resp = await fetch('/vct/registry/api/list?' + p.toString());
+        if (!resp.ok) throw new Error('HTTP '+resp.status);
+        pickerItems = await resp.json();
+        renderPickerRows(pickerItems);
+        pickerStatus.textContent = `Found ${Array.isArray(pickerItems)?pickerItems.length:0} item(s).`;
+      }catch(e){
+        pickerStatus.textContent = 'Failed to load list.';
+      }
+    }
+
+
+    pickerSearch.addEventListener('click', fetchPicker);
+    pickerReset.addEventListener('click', ()=>{ pickerQ.value=''; pickerSort.value=''; fetchPicker(); });
+    $('select-base-btn').addEventListener('click', ()=>{ showPicker(); fetchPicker(); });
+    pickerSort.addEventListener('change', fetchPicker);
+    pickerQ.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          fetchPicker();
+        }
+      });
+    
+
+    // ---------- Inherited claims table ----------
+    function renderInheritedClaims(doc){
+      const claims = Array.isArray(doc.claims) ? doc.claims : [];
+      if (!claims.length){
+        overridesWrap.innerHTML = '<span class="note">No claim metadata found in base (you can still add new claims).</span>';
+        return;
+      }
+      const tbl = document.createElement('table');
+      tbl.style.width='100%'; tbl.style.borderCollapse='collapse';
+      tbl.innerHTML = '<thead><tr><th>Claim Path</th><th>Label(s)</th><th>SD</th><th>Action</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      claims.forEach(c => {
+        const tr = document.createElement('tr');
+        const k = pathKey(c.path||[]);
+        const labels = Array.isArray(c.display) ? c.display.map(d=>`${d.lang||'—'}:${d.label||''}`).join(', ') : '';
+        tr.innerHTML = `<td class="mono">${k}</td><td>${labels}</td><td>${c.sd||'allowed'}</td>`;
+        const td = document.createElement('td');
+        const btn = document.createElement('button'); btn.className='secondary-btn'; btn.type='button'; btn.textContent='Override…';
+        btn.addEventListener('click', ()=>{
+          const lang = prompt(`Language code for ${k} (e.g., en)`, 'en') || 'en';
+          const newLabel = prompt(`Override label for ${k} (lang=${lang}):`, (Array.isArray(c.display)&&c.display[0]?.label)||'');
+          if (newLabel && newLabel.trim()){
+            const pk = k;
+            const cur = overrides[pk] || { path: c.path, display: [], sd: c.sd||'allowed' };
+            const idx = cur.display.findIndex(d => (d.lang||'') === lang);
+            if (idx >= 0) cur.display[idx] = { lang, label: newLabel.trim() };
+            else cur.display.push({ lang, label: newLabel.trim() });
+            overrides[pk] = cur;
+            ok(baseStatus, `Override set for ${k} (${lang})`);
+            setStep(s2, 'active');
+          }
+        });
+        td.appendChild(btn);
+        tr.appendChild(td);
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb);
+      overridesWrap.innerHTML = '';
+      overridesWrap.appendChild(tbl);
+    }
+
+    function renderNewClaims(){
+      if (!newClaims.length){ newClaimsList.textContent = 'No new claims yet.'; return; }
+      newClaimsList.textContent = newClaims
+        .map(x => `${x.path.join('.')} → ${x.display.map(d => d.lang+':'+d.label).join(', ')}`)
+        .join('  •  ');
+    }
+
+    addClaimBtn.addEventListener('click', ()=>{
+      const p = (newClaimPath.value||'').trim();
+      const l = (newClaimLabel.value||'').trim();
+      const lang = (newClaimLang.value||'en').trim() || 'en';
+      if (!p || !l) return;
+      const pathArr = p.split('.');
+      let found = newClaims.find(nc => pathKey(nc.path) === pathKey(pathArr));
+      if (!found){
+        found = { path: pathArr, display: [] };
+        newClaims.push(found);
+      }
+      const idx = found.display.findIndex(d => (d.lang||'') === lang);
+      if (idx >= 0) found.display[idx] = { lang, label: l };
+      else found.display.push({ lang, label: l });
+      newClaimLabel.value='';
+      renderNewClaims();
+      setStep(s3, 'active');
+      maybeEnableGenerate();
+    });
+
+    async function loadBase(){
+      const id = (baseRowId.value||'').trim();
+      if (!id){ err(baseStatus, 'Please select a base VCT first.'); return; }
+      overlayOn(true); baseStatus.textContent='';
+      try{
+        const r = await fetch(`/vct/registry/api/download/${encodeURIComponent(id)}`);
+        if (!r.ok){ throw new Error(`HTTP ${r.status}`); }
+        baseDoc = await r.json();
+        baseNameEl.value = getBaseName(baseDoc);
+        ok(baseStatus, 'Base loaded.');
+        setStep(s1, 'done'); setStep(s2,'active');
+        overridesRow.removeAttribute('aria-disabled');
+        addClaimsRow.removeAttribute('aria-disabled');
+        const metaRow = document.getElementById('meta-row'); if (metaRow) metaRow.removeAttribute('aria-disabled');
+        renderInheritedClaims(baseDoc);
+        maybeEnableGenerate();
+      }catch(e){
+        console.error(e); err(baseStatus, 'Failed to load base.');
+      }finally{
+        overlayOn(false);
+      }
+    }
+
+    function slug(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,64); }
+    function makeDraftVct(name){
+      const t = new Date().toISOString().replace(/[:.]/g,'');
+      return `https://vc-registry.com/draft/${slug(name)||'vct'}/${t}`;
+    }
+
+    function mergeDoc(){
+      if (!baseDoc) throw new Error('Load a base VCT first');
+      const name = nameInput.value.trim();
+      const description = descInput.value.trim();
+      if (!name || !description) throw new Error('Name and description required');
+
+      const baseClaims = Array.isArray(baseDoc.claims) ? JSON.parse(JSON.stringify(baseDoc.claims)) : [];
+      const byPath = new Map();
+      baseClaims.forEach(c => byPath.set(pathKey(c.path||[]), c));
+
+      // apply overrides
+      Object.entries(overrides).forEach(([k,ov])=>{
+        const proto = byPath.get(k) || { path: ov.path };
+        const out = { path: proto.path, sd: ov.sd || proto.sd, display: [] };
+        const baseDisp = Array.isArray(proto.display) ? proto.display : [];
+        const dispByLang = new Map();
+        baseDisp.forEach(d => dispByLang.set(d.lang, { ...d }));
+        ov.display.forEach(d => dispByLang.set(d.lang, { ...d }));
+        out.display = Array.from(dispByLang.values());
+        byPath.set(k, out);
+      });
+
+      // merge new claims
+      newClaims.forEach(nc=>{
+        const k = pathKey(nc.path);
+        const existing = byPath.get(k);
+        if (!existing){
+          byPath.set(k, { path: nc.path, display: nc.display, sd: nc.sd || 'allowed' });
+        } else {
+          const dispByLang = new Map();
+          (Array.isArray(existing.display)?existing.display:[]).forEach(d => dispByLang.set(d.lang, { ...d }));
+          (Array.isArray(nc.display)?nc.display:[]).forEach(d => dispByLang.set(d.lang, { ...d }));
+          existing.display = Array.from(dispByLang.values());
+          byPath.set(k, existing);
+        }
+      });
+
+      const outClaims = Array.from(byPath.values());
+
+      // output VCT doc
+      return {
+        vct: makeDraftVct(name),
+        name, description,
+        extends: baseDoc.vct || '',
+        ...(baseIntegrity ? {'extends#integrity': baseIntegrity} : {}),
+        display: baseDoc.display || [],
+        claims: outClaims
+      };
+    }
+
+    $('generate-btn').addEventListener('click', ()=>{
+      try{
+        const out = mergeDoc();
+        const text = JSON.stringify(out, null, 2);
+        editor.textContent = text;
+        editorWrap.style.display = 'block';
+        ok(statusEl, 'Generated. You can edit before upload.');
+        setStep(s4,'active');
+        downloadBtn.disabled = false;
+        uploadBtn.disabled = false;
+      }catch(e){ err(statusEl, e.message||'Error'); }
+    });
+
+    function maybeEnableGenerate(){
+      const hasBase = !!baseDoc;
+      const hasName = !!nameInput.value.trim();
+      const hasDesc = !!descInput.value.trim();
+      const ready = hasBase && hasName && hasDesc;
+      $('generate-btn').disabled = !ready;
+      if (!hasBase) { statusEl.textContent = 'Select a base VCT first.'; return; }
+      if (!hasName) { statusEl.textContent = 'Enter a name for your new VCT.'; return; }
+      if (!hasDesc) { statusEl.textContent = 'Enter a description for your new VCT.'; return; }
+      statusEl.textContent = '';
+    }
+    ['input','change'].forEach(ev => {
+      nameInput.addEventListener(ev, maybeEnableGenerate);
+      descInput.addEventListener(ev, maybeEnableGenerate);
+    });
+
+    // If opened with params (e.g., from browse)
+    (async function initFromParams(){
+      if (qs.get('row_id')) {
+        baseRowId.value = qs.get('row_id');
+        await loadBase();
+      } else {
+        // Open picker automatically if no preselection
+        showPicker(); fetchPicker();
+      }
+      if (qs.get('name')) { nameInput.value = qs.get('name'); }
+      if (qs.get('description')) { descInput.value = qs.get('description'); }
+      maybeEnableGenerate();
+    })();
+
+    // download
+    let lastBlobUrl=null;
+    function makeDownloadUrl(text, filename){
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      const blob = new Blob([text], { type:'application/json;charset=utf-8' });
+      lastBlobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = lastBlobUrl; a.download = filename; a.click();
+    }
+    $('download-btn').addEventListener('click', ()=>{
+      makeDownloadUrl(editor.textContent||'{}', `${(nameInput.value.trim()||'vct')}.json`);
+    });
+
+    // upload via existing API
+    $('upload-btn').addEventListener('click', async ()=>{
+      overlayOn(true); statusEl.textContent='';
+      try{
+        const text = editor.textContent || '{}';
+        const blob = new Blob([text], {type:'application/json'});
+        const fd = new FormData();
+        fd.append('file', blob, 'vct.json');
+        fd.append('publish', 'true');
+        const r = await fetch('/vct/registry/api/upload', { method:'POST', body: fd });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+        modalVct.value = j.vct || '';
+        modalInt.value = j.integrity || '';
+        modalUrn.value = j.vct_urn || '';
+        showUploadModal();
+        ok(statusEl, 'Uploaded ✅');
+      }catch(e){ err(statusEl, e.message||'Upload failed'); }
+      finally{ overlayOn(false); }
+    });
+  </script>
+</body>
+</html>
