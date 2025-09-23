@@ -385,6 +385,7 @@
         pick.type='button'; pick.className='secondary-btn'; pick.textContent='Select';
         pick.addEventListener('click', async ()=>{
           baseRowId.value = item.id;                        // hidden internal id
+          baseIntegrity = item.integrity || ''; 
           baseNameEl.value = item.name || '(unnamed)';      // visible friendly name
           hidePicker();
           await loadBase();                                  // immediately load
@@ -507,6 +508,8 @@
       try{
         const r = await fetch(`/vct/registry/api/download/${encodeURIComponent(id)}`);
         if (!r.ok){ throw new Error(`HTTP ${r.status}`); }
+        const hdrInt = r.headers.get('X-Integrity') || r.headers.get('Integrity') || '';
+        if (!baseIntegrity && hdrInt) baseIntegrity = hdrInt;   // <-- capture if not set
         baseDoc = await r.json();
         baseNameEl.value = getBaseName(baseDoc);
         ok(baseStatus, 'Base loaded.');
