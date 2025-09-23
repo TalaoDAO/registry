@@ -356,7 +356,7 @@ def api_vct_list():
             (VCTRegistry.keywords.ilike(like))
         )
 
-    # Extra filters (no migration; operate on existing columns)
+    # Extra filters
     langs = [x.strip().lower() for x in (request.args.get("languages") or "").split(",") if x.strip()]
     prop = (request.args.get("prop") or "").strip().lower()
     claim = (request.args.get("claim") or "").strip().lower()

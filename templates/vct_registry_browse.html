@@ -63,6 +63,26 @@
     .hint { color:#6b7280; font-size:.9rem; padding:1rem; }
 
     .filters { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  
+    /* Toast for copy feedback */
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      background: #111827;
+      color: #fff;
+      padding: .6rem .8rem;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .2s ease, transform .2s ease;
+      z-index: 1000;
+      font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      font-size: .9rem;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
   </style>
 </head>
 <body>
@@ -181,6 +201,49 @@
 
     function overlayOn(on){ overlay.style.display = on ? 'flex' : 'none'; }
 
+    function showToast(msg){
+      try{
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        requestAnimationFrame(() => t.classList.add('show'));
+        setTimeout(() => {
+          t.classList.remove('show');
+          setTimeout(() => t.remove(), 250);
+        }, 1500);
+      }catch(e){ /* no-op */ }
+    }
+
+    async function copyText(text){
+      const s = String(text || '');
+      if (!s) return false;
+      // Try modern API in secure contexts
+      try{
+        if (navigator.clipboard && window.isSecureContext){
+          await navigator.clipboard.writeText(s);
+          return true;
+        }
+      }catch(e){ /* fallthrough */ }
+      // Fallback for http or older browsers
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = s;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return !!ok;
+      }catch(e){
+        return false;
+      }
+    }
+
+
+
     // ---- Stars (READ-ONLY)
     function starEl(filled){ const el = document.createElement('span'); el.className = 'star' + (filled ? ' filled':'' ); el.textContent = '★'; return el; }
     function renderStarsCell(item){
@@ -234,12 +297,41 @@
 
         // Actions
         const tdActions = document.createElement('td');
+
         const dl = document.createElement('a');
         dl.href = `/vct/registry/api/download/${item.id}`;
         dl.className = 'secondary-btn';
         dl.textContent = 'Download JSON';
         dl.setAttribute('title', 'Download VCT JSON');
         tdActions.appendChild(dl);
+
+                // Copy VCT URL
+        const copyVctBtn = document.createElement('button');
+        copyVctBtn.type = 'button';
+        copyVctBtn.className = 'ghost-btn';
+        copyVctBtn.textContent = 'Copy VCT URL';
+        copyVctBtn.title = item.vct || 'No VCT URL available';
+        copyVctBtn.addEventListener('click', async () => {
+          const ok = await copyText(item.vct);
+          showToast(ok ? 'VCT URL copied' : 'No VCT URL to copy');
+        });
+        tdActions.appendChild(copyVctBtn);
+
+                // Copy Integrity
+        const copyIntBtn = document.createElement('button');
+        copyIntBtn.type = 'button';
+        copyIntBtn.className = 'ghost-btn';
+        copyIntBtn.textContent = 'Copy integrity';
+        copyIntBtn.title = item.integrity || 'Integrity not available';
+        copyIntBtn.addEventListener('click', async () => {
+          const ok = await copyText(item.integrity);
+          showToast(ok ? 'Integrity copied' : 'No integrity value to copy');
+        });
+        tdActions.appendChild(copyIntBtn);
+
+        // Disable buttons when values are missing
+        if (!item.vct) copyVctBtn.disabled = true;
+        if (!item.integrity) copyIntBtn.disabled = true;
 
         tr.appendChild(tdName);
         tr.appendChild(tdDescription);
