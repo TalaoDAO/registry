@@ -87,12 +87,12 @@
             <select id="scope">
               {% if user and (user.is_admin or user.role == 'admin') %}
               <option value="my">My VCTs</option>
-              <option selected value="public">Public Catalog</option>
+              <option selected value="public">Public Registry</option>
               <option value="robot">Robot</option>
               <option value="private">Private</option>
               {% else %}
                <option value="my" selected>My VCTs</option>
-              <option value="public">Public Catalog</option>
+              <option value="public">Public Registry</option>
               {% endif %}
             </select>
             <input type="text" id="search" placeholder="Search by keywords… e.g. address, birthdate, diploma" />
