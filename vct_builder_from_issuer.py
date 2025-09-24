@@ -29,8 +29,9 @@ from __future__ import annotations
 
 import json
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Iterable
-
+import base64
 import requests
+import hashlib
 
 
 # -----------------------------------------------------------------------------
@@ -204,6 +205,38 @@ def _claims_md_from_claims_map(claims_map: Mapping[str, Any], *, base_path: Opti
         out.append({"path": path, "display": disp or [{"label": key}], "sd": "allowed"})
 
     return out
+
+
+
+def _image_url_to_data_uri(url: str, *, timeout: float = 15.0) -> str:
+    """
+    Fetch an image and return a data: URI string like 'data:image/png;base64,....'
+    Raises requests.HTTPError on non-2xx responses.
+    """
+    headers = {"User-Agent": "img-fetch/1.0"}
+    r = requests.get(url, timeout=timeout, headers=headers, stream=True)
+    r.raise_for_status()
+    # Try to get the MIME type from the server; default to octet-stream.
+    mime = r.headers.get("Content-Type", "application/octet-stream").split(";")[0].strip()
+    # Read the bytes (since we set stream=True, call r.content to load them)
+    data = r.content
+    b64 = base64.b64encode(data).decode("ascii")
+    return f"data:{mime};base64,{b64}"
+
+
+def _sri_sha256_from_url(uri: str) -> str:
+    """Same integrity format as /vct/registry/api/upload.
+    data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...
+    """
+    if uri.startswith("http"):
+        data_image = _image_url_to_data_uri(uri)
+    elif uri.startswith("data:image"):
+        data_image = uri
+    else:
+        return
+    if data_image:
+        digest = hashlib.sha256(data_image.encode()).digest()
+        return "sha256-" + base64.b64encode(digest).decode("ascii")
 
 
 def _schema_from_claims_descriptions(cds: List[Mapping[str, Any]]) -> Dict[str, Any]:
@@ -458,7 +491,8 @@ def generate_vc_type_metadata_from_issuer(
     # 7) Optional rendering hints passthrough
     if simple_rendering:
         result["rendering"] = {"simple": dict(simple_rendering)}
-
+    else:
+        simple_rendering = ""
     return result
 
 
@@ -482,13 +516,34 @@ def _normalize_display(raw: Any) -> List[Dict[str, Any]]:
         lang = d.get("lang") or d.get("language") or d.get("locale")
         label = d.get("label") or d.get("name") or d.get("title")
         desc = d.get("description")
+        text_color = d.get("text_color")
+        background_color = d.get("background_color")
+        logo = d.get("logo")
+        background_image = d.get("background_image")
         entry: Dict[str, Any] = {}
+        if text_color or background_color or logo or background_image:
+            entry["rendering"] = {"simple": {}}
+            if text_color:
+                entry["rendering"]["simple"].update(({"text_color": text_color}))
+            if background_color:
+                entry["rendering"]["simple"].update({"background_color": background_color})
+            if logo:
+                uri_integrity = _sri_sha256_from_url(logo.get("uri"))
+                if uri_integrity:
+                    logo.update({"uri#integrity" : uri_integrity})
+                    entry["rendering"]["simple"].update({"logo": logo})
+            if background_image:
+                uri_integrity = _sri_sha256_from_url(background_image.get("uri"))
+                if uri_integrity:
+                    background_image.update({"uri#integrity" : uri_integrity})
+                    entry["rendering"]["simple"].update({"background_image": background_image})
         if lang:
             entry["lang"] = str(lang)
         if label:
             entry["label"] = str(label)
         if desc:
             entry["description"] = str(desc)
+        
         if entry:
             out.append(entry)
     return out

@@ -497,6 +497,8 @@ def api_generate_status(task_id: str):
     if r.info:
         out["meta"] = r.info
     return jsonify(out), 200
+
+
 @bp.route("/attestation/api/propose-name-desc", methods=["POST"])
 def api_propose_name_desc():
     """
