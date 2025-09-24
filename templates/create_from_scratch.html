@@ -120,23 +120,23 @@
       <section class="card-body">
         <form id="attestation-form" class="grid" autocomplete="off" enctype="multipart/form-data">
           <div class="row">
-            <label for="vct">VCT identifier (URN)</label>
+            <label for="vct">VCT local identifier</label>
             <input id="vct" name="vct" type="text" required
                    placeholder="https://issuer.example.com/vct/your-credential"
                    value="{{ vct }}" />
-            <p class="note">This identifies the credential type.</p>
+            <p class="note">This identifies the credential type for local use. It will be replaced by an URL when uploaded to the registry.</p>
           </div>
 
           <div class="row">
-            <label for="name">VCT name</label>
+            <label for="name">VCT name (Required)</label>
             <input id="name" name="name" type="text" required placeholder="Work ID" value="{{ name or '' }}">
-            <p class="note">This name identifies the credential in the offer and metadata.</p>
+            <p class="note">This name identifies the credential and is imported in the VC Type.</p>
           </div>
 
           <input type="hidden" name="input_mode" value="description" />
 
           <div class="row" id="desc-row">
-            <label for="description">Attestation description</label>
+            <label for="description">Attestation description (Required)</label>
             <textarea id="description" name="description" placeholder="e.g. An employment attestation proving a person works for ACME...&#10;- employeeId&#10;- fullName&#10;- address: street, locality, region, postalCode, country"></textarea>
             <p class="note">Free text or bullet list. We’ll infer a JSON Schema from this.</p>
           </div>
@@ -217,7 +217,7 @@
   <div class="overlay" id="overlay" aria-live="polite" aria-busy="true">
     <div style="display:flex; flex-direction:column; align-items:center; gap:.75rem;">
       <div class="spinner" aria-hidden="true"></div>
-      <div style="font-family: ui-monospace, Menlo, Consolas, monospace;">Generating… please wait (~ 1 min)</div>
+      <div style="font-family: ui-monospace, Menlo, Consolas, monospace;">Generating… please wait (1 to 2 minutes)</div>
     </div>
   </div>
 

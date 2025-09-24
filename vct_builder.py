@@ -545,7 +545,7 @@ def generate_vc_type_metadata(
     langs = list(dict.fromkeys(langs))
 
     client = _ensure_llm(cfg, use_llm=use_llm, require_llm=require_llm, phase="type_metadata")
-
+    """
     schema = generate_sdjwt_vc_schema(
         description,
         vct=vct,
@@ -553,7 +553,7 @@ def generate_vc_type_metadata(
         cfg=cfg,
         use_llm=use_llm,
         require_llm=require_llm,
-    )
+    )"""
     
     if not credential_name and schema.get("title"):
         credential_name = schema.get("title") 
