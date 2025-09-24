@@ -100,8 +100,8 @@
         </header>
         <p>Fetch an OIDC4VCI <strong>Credential Issuer</strong> metadata, select a credential configuration, and build the VCT file.</p>
         <ul>
-          <li>Reads <code>vct</code>, <code>display[]</code>, <code>claims</code>, <code>schema</code> from issuer metadata</li>
-          <li>Supports OIDC4VCI drafts 11 to final</li>
+          <li>Reads <code>vct</code>, <code>display[]</code> and <code>claims</code> from issuer metadata</li>
+          <li>Supports OIDC4VCI drafts 11 to final 1.0</li>
         </ul>
         <div class="actions"><a class="btn-primary btn" href="/attestation/generate/issuer">Import from Issuer →</a></div>
       </article>
@@ -112,7 +112,7 @@
           <div class="mark" aria-hidden="true">S</div>
           <h3>Generate from JSON Schema</h3>
         </header>
-        <p>Upload a JSON Schema (2020‑12+). We’ll use it directly for <code>schema</code> and let you add localized display.</p>
+        <p>Upload a JSON Schema (2020‑12+). We’ll use it directly for <code>claims generation</code> and let you add localized display.</p>
         <ul>
           <li>Keeps your property names as‑is</li>
           <li>Add translations for <code>display[]</code></li>
@@ -127,7 +127,7 @@
           <div class="mark" aria-hidden="true">C</div>
           <h3>Generate from Scratch</h3>
         </header>
-        <p>Describe your credential and target languages; we’ll help you draft the <code>schema</code> and <code>display[]</code>.</p>
+        <p>Describe your credential and target languages; we’ll help you draft the <code>claims</code> and <code>display[]</code>.</p>
         <ul>
           <li>Free-form description to schema</li>
           <li>30-language labels supported</li>
