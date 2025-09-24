@@ -277,10 +277,11 @@
 <div class="card">
 <h2>What you can do</h2>
 <ul>
-<li><strong>Generate VC Types</strong> three ways: from an <em>Issuer</em> (OIDC4VCI), from a <em>JSON Schema</em>, or <em>from scratch</em> with assisted AI.</li>
-<li>Localize once: produce display[] labels and descriptions in up to 30 languages and reuse them everywhere.</li>
 <li><strong>Publish</strong> to a registry with a stable URL and integrity hash, or keep private while you iterate.</li>
-<li><strong>Discover &amp; reuse</strong> existing types from the public registry to avoid duplicates.</li>
+<li><strong>Extend</strong> an existing VC Type. Reuse, enrich. simplify</li>
+<li><strong>Generate VC Types</strong> three ways: from an <em>Issuer</em> (OIDC4VCI), from a <em>JSON Schema</em>, or <em>from scratch</em> with assisted AI.</li>
+<li><strong>Localize</strong>: produce labels and descriptions in up to 30 languages and reuse them everywhere.</li>
+<li><strong>Discover &amp; download</strong> existing types from the public registry to avoid duplicates.</li>
 </ul>
 </div>
 <div class="card">
@@ -288,7 +289,7 @@
 <ul>
 <li><strong>Project managers</strong> who need a shared reference for names, fields, and UI labels.</li>
 <li><strong>CTOs/architects</strong> coordinating issuers, wallets, and verifiers across vendors.</li>
-<li>Integrators aligning schemas and UX wording without lengthy back-and-forth.</li>
+<li><strong>Integrators</strong> aligning UX wording without lengthy back-and-forth.</li>
 </ul>
 </div>
 <div class="card">
@@ -304,7 +305,7 @@
 <section class="block grid">
 <div class="card">
 <h2>Generate from an Issuer</h2>
-<p>Fetch an OIDC4VCI Credential Issuer’s metadata, select a configuration, and we’ll prefill VCT fields (display, claims, schema). Supports Draft 11 through Final 1.0.</p>
+<p>Fetch an OIDC4VCI Credential Issuer’s metadata, select a configuration, and we’ll prefill VCT fields (display, claims). Supports Draft 11 through Final 1.0.</p>
 <div class="actions"><a class="btn" href="/attestation/generate/issuer">Import from an Issuer →</a></div>
 </div>
 <div class="card">
@@ -314,7 +315,7 @@
 </div>
 <div class="card">
 <h2>Start from scratch (with AI)</h2>
-<p>Describe your credential and target languages. We’ll generate an initial <code>schema</code> and <code>display[]</code> that you can refine.</p>
+<p>Describe your credential and target languages. We’ll generate an initial <code>claims description</code> and <code>display[]</code> that you can refine.</p>
 <div class="actions"><a class="btn" href="/attestation/generate/scratch">Start Blank →</a></div>
 </div>
 </section>
@@ -333,7 +334,7 @@
 <h2>Standards &amp; interoperability</h2>
 <ul>
 <li><strong>VCT identifier (<code>vct</code>)</strong> names the credential type for SD-JWT VC.</li>
-<li>Type metadata can include <strong>schema</strong> (validation), <strong>display metadata</strong> (rendering, multi-language), and <strong>claim metadata</strong> (selective disclosure hints).</li>
+<li>Type metadata can include <strong>claims</strong> (validation), <strong>display metadata</strong> (rendering, multi-language), and <strong>metadata</strong> (selective disclosure hints).</li>
 <li><strong>Retrieval</strong>: from a URL in <code>vct</code> or from a <strong>registry</strong>; optional integrity via <code>vct#integrity</code>.</li>
 <li>JSON Schema (2020-12 recommended) for predictability.</li>
 <li>Learn about our <a href="/attestation/generate/schema">JSON Schema support for VCTs</a>.</li></ul>
@@ -455,6 +456,7 @@
       </p>
 <div class="actions">
 <a class="btn btn-primary" href="/vct/registry/browse">Browse the Registry</a>
+<a class="btn btn-primary" href="/vct/registry/extend">Extend a VC Type</a>
 <a class="btn" href="/attestation/generate/issuer">Import from an Issuer</a>
 <a class="btn" href="/attestation/generate/schema">Generate from a JSON Schema</a>
 </div>

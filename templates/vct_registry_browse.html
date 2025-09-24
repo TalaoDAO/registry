@@ -136,11 +136,11 @@
               </select>
 
               <input id="languages" type="text" placeholder="Languages (e.g. en,fr)" title="Comma-separated list, matches languages_supported" />
-              <input id="prop" type="text" placeholder="Schema property contains…" />
+             <input hidden id="prop" type="text" placeholder="Schema property contains…" /> 
               <input id="claim" type="text" placeholder="Claim path contains…" />
               <input id="min_rating" type="number" min="0" max="5" step="0.1" placeholder="Min ★" />
               <input id="min_calls" type="number" min="0" step="1" placeholder="Min calls" />
-              <label title="Only entries with a JSON Schema"><input id="has_schema" type="checkbox" /> Has schema</label>
+              <label hidden title="Only entries with a JSON Schema"><input hidden id="has_schema" type="checkbox" /> Has schema</label>
             </div>
           </div>
         </div>

@@ -271,12 +271,14 @@ def vct_registry_manage():
 
 @login_required
 def vct_registry_import():
+    """
     for row in VCTRegistry.query.all():
         payload = row.vct_data if isinstance(row.vct_data, str) else row.vct_data.decode("utf-8", "replace")
         new_integrity = sri_sha256(payload.encode("utf-8"))
         if row.integrity != new_integrity:
             row.integrity = new_integrity
     db.session.commit()
+    """
     return render_template("import_vct.html", user=current_user)
 
 def vct_registry_browse():
