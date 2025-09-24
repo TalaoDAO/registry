@@ -8,7 +8,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-
+import secrets
 from flask import current_app, jsonify, render_template, request, Response
 from flask_login import login_required, current_user
 
@@ -259,12 +259,24 @@ def init_app(app):
 # UI pages
 # ----------------------------------------------------------------------------
 
+
+# To be removed later
+def sri_sha256(b: bytes) -> str:
+    return "sha256-" + base64.b64encode(hashlib.sha256(b).digest()).decode("ascii")
+
+
 @login_required
 def vct_registry_manage():
     return render_template("manage_registry.html", user=current_user)
 
 @login_required
 def vct_registry_import():
+    for row in VCTRegistry.query.all():
+        payload = row.vct_data if isinstance(row.vct_data, str) else row.vct_data.decode("utf-8", "replace")
+        new_integrity = sri_sha256(payload.encode("utf-8"))
+        if row.integrity != new_integrity:
+            row.integrity = new_integrity
+    db.session.commit()
     return render_template("import_vct.html", user=current_user)
 
 def vct_registry_browse():
@@ -308,8 +320,13 @@ def vct_publish(vct_urn: str):
     if not preview:
         _bump_calls(row)
 
-    # Build response
-    resp = jsonify(data)
+    
+    # Parse only if you need to bump calls etc., but SERVE stored bytes
+    payload = row.vct_data if isinstance(row.vct_data, str) else row.vct_data.decode("utf-8", "replace")
+
+    # Do not re-serialize; return the stored bytes exactly
+    resp = Response(payload, mimetype="application/json; charset=utf-8")
+
 
     # Core headers for CDN & clients
     integrity = row.integrity or ""                  # e.g., "sha256-…"
@@ -319,7 +336,8 @@ def vct_publish(vct_urn: str):
     # Normal requests: long-lived, immutable cache
     if not preview:
         # JSON documents are immutable once published (new content => new integrity/URN)
-        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # 1 year
+        #resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # 1 year
+        pass
     else:
         # Preview must not be cached
         resp.headers["Cache-Control"] = "private, no-store"
@@ -505,7 +523,6 @@ def api_vct_upload():
         return jsonify({"error": "Empty file"}), 400
 
     publish_flag = (request.form.get("publish") or "false").lower() in ("1", "true", "yes", "on")
-    integrity = _sri_sha256(raw)
 
     # load file
     try:
@@ -513,17 +530,20 @@ def api_vct_upload():
     except Exception as e:
         return jsonify({"error": f"Invalid JSON: {e}"}), 400
 
-    # In the registry vct is built from the sha256 hash of the vct original value
-    vct_urn_orig = (vct_json.get("vct") or "").strip()
-    if not vct_urn_orig:
-        return jsonify({"error": "Missing 'vct' in the JSON document"}), 400
-    vct_urn_hashed = hashlib.sha256(vct_urn_orig.encode()).digest()
-    vct_urn = base64.urlsafe_b64encode(vct_urn_hashed).decode("ascii").rstrip('=')
+    #vct_urn_orig = (vct_json.get("vct") or "").strip()
+    #if not vct_urn_orig:
+    #    return jsonify({"error": "Missing 'vct' in the JSON document"}), 400
+    vct_urn = secrets.token_hex(32)
 
-    # build vct for publishing and update vct in the registry (stable public URL)
+    # build vct_url for publishing and update vct in the registry (stable public URL)
     mode = current_app.config["MODE"]
     vct_url = mode.server + "vct/registry/publish/" + vct_urn
     vct_json["vct"] = vct_url
+    
+    payload = json.dumps(vct_json, ensure_ascii=False, separators=(",", ":"))
+    payload_bytes = payload.encode("utf-8")
+    # Compute integrity on the FINAL bytes
+    integrity = _sri_sha256(payload_bytes)
 
     name = vct_json.get("name")
     description = vct_json.get("description")
@@ -532,8 +552,10 @@ def api_vct_upload():
     if VCTRegistry.query.filter_by(integrity=integrity).first():
         return jsonify({"error": "An entry with the same integrity already exists."}), 409
 
-    schema_hash = _schema_hash(vct_json.get("schema")) if vct_json.get("schema") else ""
-
+    #removed with draft 12
+    #schema_hash = _schema_hash(vct_json.get("schema")) if vct_json.get("schema") else ""
+    schema_hash = ""
+    
     base_name = name
     suffix = 2
     while VCTRegistry.query.filter_by(name=name).first() is not None:

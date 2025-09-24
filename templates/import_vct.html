@@ -11,7 +11,7 @@
            --text:#202124; --subtext:#5f6368; --bg:#f8f9fa; --ok:#166534; --err:#991b1b; }
     body { margin:0; background:#f7f9fc; color:#333; font-family: Arial, sans-serif; }
 
-    /* --- Match create_from_scratch layout --- */
+    /* Layout matches create_from_scratch */
     .section { max-width:1200px; margin:4rem auto; padding:0 2rem; }
     .card { width:100%; max-width:1100px; margin:0 auto; background:var(--surface); border:1px solid var(--border);
             border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.06); overflow:hidden; }
@@ -23,17 +23,17 @@
     .grid { display:grid; grid-template-columns: 1fr; gap:1rem; }
     .row { display:grid; gap:.5rem; }
     label { font-weight:600; color:#1f2937; }
-    input[type="text"], input[type="file"], textarea, input[type="url"] {
+    input[type="text"], input[type="file"] {
       width:100%; padding:.7rem .85rem; border:1px solid var(--border); border-radius:8px; font-size:.95rem; background:#fff;
     }
     .note { color:var(--subtext); font-size:.9rem; }
 
-    /* Drag & drop zone */
+    /* Dropzone */
     .dropzone { border:2px dashed var(--border); border-radius:12px; padding:1.25rem; background:#fff;
       display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; cursor:pointer; }
     .dropzone.drag { border-color: var(--google-blue); background:#f0f6ff; }
 
-    /* Actions + buttons — same system as scratch page */
+    /* Buttons */
     .actions { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; }
     .actions .spacer { flex:1 1 auto; }
     .primary-btn, .secondary-btn, .ghost-btn {
@@ -62,7 +62,7 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .hidden { display:none !important; }
 
-    /* Success modal (same as scratch page) */
+    /* Success modal */
     .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:60; }
     .modal { width:min(640px, calc(100vw - 2rem)); background:#fff; border-radius:14px; border:1px solid var(--border); box-shadow:0 20px 60px rgba(0,0,0,.35); }
     .modal header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:#fff; }
@@ -84,7 +84,7 @@
 
     @media (prefers-color-scheme: dark) {
       :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
-      input[type="text"], input[type="file"], textarea, input[type="url"] { background:#151617; color:#e8eaed; }
+      input[type="text"], input[type="file"] { background:#151617; color:#e8eaed; }
       .secondary-btn { background:#0f172a; color:#cbd5e1; border:1px solid #334155; }
       .ghost-btn { color:#cbd5e1; border-color:#334155; }
       .modal { background:#141618; }
@@ -116,7 +116,7 @@
 
     <article class="card" aria-labelledby="upload-title">
       <header class="card-header">
-        <div class="app-mark" aria-hidden="true">F</div>
+        <div class="app-mark" aria-hidden="true">I</div>
         <div>
           <h2 class="title" id="upload-title">Add a VC Type to the Registry</h2>
           <p class="subtitle">Load → Edit → Validate → Upload</p>
@@ -178,7 +178,7 @@
     </div>
   </div>
 
-  <!-- Success modal (same as scratch page) -->
+  <!-- Success modal -->
   <div class="modal-backdrop" id="upload-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title" aria-hidden="true">
     <div class="modal">
       <header>
@@ -228,7 +228,7 @@
     const nameInput = document.getElementById('vc-name');
     const descriptionInput = document.getElementById('vc-desc');
 
-    // Editor controls (same behavior as create_from_scratch)
+    // Editor controls
     const editorWrap = document.getElementById('editor-wrap');
     const editor = document.getElementById('editor');
     const formatBtn = document.getElementById('format-btn');
@@ -239,7 +239,7 @@
     const status = document.getElementById('status');
     const editorMsg = document.getElementById('editor-msg');
 
-    // Modal elements (ids match scratch page)
+    // Modal elements
     const modalBackdrop = document.getElementById('upload-modal-backdrop');
     const modalClose = document.getElementById('upload-modal-close');
     const modalOk = document.getElementById('upload-modal-ok');
@@ -251,7 +251,7 @@
     // State
     let lastBlobUrl = null;
     let lastFilename = null;
-    let loadedJsonText = ''; // original loaded file content
+    let loadedJsonText = '';
     let changeTimer;
 
     // Utils
@@ -275,7 +275,13 @@
       uploadBtn.disabled = !on;
       editorWrap.style.display = on ? 'grid' : 'none';
     }
-    function getEditorText(){ return editor.innerText.replace(/\u00A0/g, ' '); }
+    // IMPORTANT: read the editor with textContent and normalize,
+    // so we preserve exactly what the user typed.
+    function getEditorText(){
+      return (editor.textContent || '')
+        .replace(/\u00A0/g, ' ')
+        .replace(/\r\n?/g, '\n');
+    }
     function setEditorText(txt){ editor.textContent = txt; }
     function makeDownload(text, filename){
       if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
@@ -315,8 +321,10 @@
     });
 
     // Drag & drop wiring
-    ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
-    ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+    const dzEnter = e => { e.preventDefault(); dz.classList.add('drag'); };
+    const dzLeave = e => { e.preventDefault(); dz.classList.remove('drag'); };
+    ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, dzEnter));
+    ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, dzLeave));
     dz.addEventListener('drop', e => {
       if (e.dataTransfer.files.length) {
         fileInput.files = e.dataTransfer.files;
@@ -364,7 +372,6 @@
       overlayOn(true);
       try{
         const raw = await f.text();
-        // Keep original text for "Reset"
         let parsed; try{ parsed = JSON.parse(raw); }catch(e){ throw new Error('Invalid JSON: ' + e.message); }
         loadedJsonText = JSON.stringify(parsed, null, 2);
         setEditorText(loadedJsonText);
@@ -377,7 +384,6 @@
         const filename = `vct_${vct}_${ts}.json`;
         makeDownload(loadedJsonText, filename);
 
-        // If name/desc missing in file, encourage filling
         const missing = [];
         if (!parsed.name && !nameInput.value.trim()) missing.push('name');
         if (!parsed.description && !descriptionInput.value.trim()) missing.push('description');
@@ -438,13 +444,13 @@
       document.body.appendChild(a); a.click(); a.remove();
     });
 
-    // Upload to Registry (mirrors scratch page behavior)
+    // Upload to Registry — use EXACT editor content
     uploadBtn.addEventListener('click', async () => {
-      const text = getEditorText().trim();
-      if (!text){ setStatus('Nothing to upload — load a file first.', false); return; }
+      const rawText = getEditorText().trim();
+      if (!rawText){ setStatus('Nothing to upload — load a file first.', false); return; }
 
       let obj;
-      try { obj = JSON.parse(text); }
+      try { obj = JSON.parse(rawText); }   // validate user's JSON
       catch(e){ setStatus('Invalid JSON: ' + (e.message || e), false); return; }
 
       if (!obj.vct || !String(obj.vct).trim()){
@@ -452,18 +458,19 @@
         return;
       }
 
-      // Ensure name/description exist (take from UI if missing)
+      // Fill name/description only if missing; otherwise do NOT touch user's JSON
       const uiName = (nameInput.value || '').trim();
       const uiDesc = (descriptionInput.value || '').trim();
-      if (!obj.name && uiName) obj.name = uiName;
-      if (!obj.description && uiDesc) obj.description = uiDesc;
-
-      if (!obj.name){ setStatus('Please enter the VC type name (left of file picker) or add "name" in JSON.', false); nameInput.focus(); return; }
-      if (!obj.description){ setStatus('Please add a description (left of file picker) or in the JSON.', false); descriptionInput.focus(); return; }
+      let finalText = rawText;
+      /*if ((!obj.name && uiName) || (!obj.description && uiDesc)) {
+        if (!obj.name && uiName) obj.name = uiName;
+        if (!obj.description && uiDesc) obj.description = uiDesc;
+        finalText = JSON.stringify(obj, null, 2); // reserialize ONLY if we added fields
+      }*/
 
       const fd = new FormData();
       fd.append('file',
-        new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }),
+        new Blob([finalText], { type: 'application/json' }),
         (guessNameFromVct(obj) || 'vct') + '.json'
       );
       fd.append('publish', publishNow.checked ? 'true' : 'false');
@@ -479,7 +486,7 @@
         setStatus(wasPublic ? 'Uploaded and published ✓' : 'Uploaded ✓ (not public)', true);
         setTopStatus(wasPublic ? 'Published to registry.' : 'Added to registry (private).', true);
 
-        // Show success modal only when public (same UX as scratch page which always publishes)
+        // Show success modal only for public
         if (wasPublic) {
           modalVctUrl.value = data.vct || '';
           modalIntegrity.value = data.integrity || '';
