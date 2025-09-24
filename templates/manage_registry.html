@@ -75,7 +75,7 @@
 
     <article class="card" style="margin-top:1rem;" aria-labelledby="list-title">
       <header class="card-header">
-        <div class="app-mark" aria-hidden="true">L</div>
+        <div class="app-mark" aria-hidden="true">M</div>
         <div>
           <h2 class="title" id="list-title">Catalog</h2>
           <p class="subtitle">Browse your VCTs or explore the public catalog</p>
@@ -286,19 +286,46 @@
       const vis = document.createElement('button'); vis.type='button';
       vis.className='secondary-btn'; vis.textContent = item.is_public ? 'Public' : 'Private';
       if (item.can_modify === false){ vis.disabled = true; vis.title = 'You can only change visibility of your own VC Types.'; }
+      
+    
       vis.addEventListener('click', async () => {
         if (vis.disabled) return;
+
+        const newIsPublic = !item.is_public;
+
+        // Ask for explicit confirmation when going Public -> Private
+        if (item.is_public && !newIsPublic) {
+          const ok = confirm(
+      `Are you sure you want to make this VC Type PRIVATE?
+
+      Consequences:
+      • The public VCT URL will stop working (links will break)
+      • It will disappear from public search/catalog
+      • API downloads will be blocked
+      • Any cached/public references may fail in dependent systems
+
+      Proceed with making it private?`
+          );
+          if (!ok) return; // user canceled; do nothing
+        }
+
         overlayOn(true);
         try {
           const r = await fetch('/vct/registry/api/visibility/' + item.id, {
-            method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ is_public: !item.is_public })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_public: newIsPublic })
           });
-          const d = await r.json().catch(()=>({}));
-          if(!r.ok) throw new Error(d.error || 'Failed to change visibility');
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.error || 'Failed to change visibility');
           await refreshList();
-        } catch(e){ alert(e.message); }
-        finally { overlayOn(false); }
+        } catch (e) {
+          alert(e.message);
+        } finally {
+          overlayOn(false);
+        }
       });
+
       tdVis.appendChild(vis);
 
       const tdAct  = document.createElement('td'); tdAct.className='row-actions';
