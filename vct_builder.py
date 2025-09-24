@@ -588,7 +588,7 @@ def generate_vc_type_metadata(
     type_md: Dict[str, Any] = {
         "vct": vct,
         "display": type_display,
-        "schema": schema,
+        #"schema": schema,
         "claims": claims_md,
     }
 
@@ -679,7 +679,7 @@ def generate_vc_type_metadata_from_schema(
     type_md: Dict[str, Any] = {
         "vct": vct,
         "display": type_display,
-        "schema": schema_obj,
+        #"schema": schema_obj,
         "claims": claims_md,
     }
 

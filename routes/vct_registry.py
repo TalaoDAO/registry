@@ -281,7 +281,7 @@ def vct_publish(vct_urn: str):
     Also bumps calls_count unless ?preview=1 is provided.
     """
     mode = current_app.config["MODE"]
-    preview = request.args.get("preview")
+    preview = (request.args.get("preview") or "").strip()
     legacy_vct_url = mode.server + "vct/registry/publish/" + vct_urn
 
     row = (
@@ -292,20 +292,56 @@ def vct_publish(vct_urn: str):
         .first()
     )
     if row is None:
-        return jsonify({"error": "VCT not found or not public"}), 404
+        # Cache 404 very briefly at CDN to avoid thundering herd
+        resp = jsonify({"error": "VCT not found or not public"})
+        resp.status_code = 404
+        resp.headers["Cache-Control"] = "public, max-age=60"  # 1 minute
+        return resp
 
+    # Parse stored JSON
     try:
         data = json.loads(row.vct_data) if isinstance(row.vct_data, str) else row.vct_data
     except Exception:
         data = row.vct_data
 
+    # Do not count preview fetches; CDN can cache preview separately if needed
     if not preview:
         _bump_calls(row)
 
+    # Build response
     resp = jsonify(data)
-    resp.headers["X-VCT"] = row.vct or ""
-    resp.headers["X-Integrity"] = row.integrity
+
+    # Core headers for CDN & clients
+    integrity = row.integrity or ""                  # e.g., "sha256-…"
+    last_mod = row.updated_at or row.created_at    # datetime or None
+    etag = integrity or (row.vct_urn or "")
+
+    # Normal requests: long-lived, immutable cache
+    if not preview:
+        # JSON documents are immutable once published (new content => new integrity/URN)
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # 1 year
+    else:
+        # Preview must not be cached
+        resp.headers["Cache-Control"] = "private, no-store"
+
+    # Helpful metadata
+    if etag:
+        resp.headers["ETag"] = etag
+    if last_mod:
+        # RFC1123 format
+        resp.headers["Last-Modified"] = last_mod.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+    # Existing custom headers
+    resp.headers["X-VCT"] = row.vct or ""            # stable public URL
+    resp.headers["X-Integrity"] = integrity
+
+    # CORS (allow embedding/fetching across sites)
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Content-Type"] = "application/json; charset=utf-8"
+    resp.headers["Vary"] = "Accept-Encoding, Origin"
+
     return resp
+
 
 # ----------------------------------------------------------------------------
 # API: list / search (NO DB migration; extra filters & sorting)
@@ -427,7 +463,7 @@ def api_vct_list():
             
         try:
             doc = json.loads(r.vct_data) if isinstance(r.vct_data, str) else (r.vct_data or {})
-            schema_props_count = len(((doc.get("schema") or {}).get("properties") or {}))
+            schema_props_count = len((doc.get("claims") or {}))
         except Exception:
             schema_props_count = 0
             

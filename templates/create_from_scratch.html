@@ -27,7 +27,10 @@
     textarea { min-height:180px; resize:vertical; }
     .lang-list { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:.5rem .75rem; margin-top:.25rem; }
     .check { display:inline-flex; align-items:center; gap:.5rem; font-size:.95rem; color:#374151; }
+
     .actions { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; }
+    .actions .spacer { flex:1 1 auto; } /* allows right-aligned buttons */
+
     .primary-btn, .secondary-btn, .ghost-btn {
       appearance:none; border:none; cursor:pointer; text-decoration:none;
       padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
@@ -37,13 +40,14 @@
     .primary-btn:hover { background:var(--google-blue-dark); }
     .secondary-btn { background:#edf2ff; color:#1f3b8a; border:1px solid #c7d2fe; }
     .ghost-btn { background:transparent; color:#111827; border:1px dashed var(--border); }
+
     .note { color:var(--subtext); font-size:.9rem; }
     .editor-wrap { display:grid; gap:.5rem; }
     .editor-status { font-size:.85rem; color:var(--subtext); }
     .editor-ok { color: var(--ok); font-weight:600; }
     .editor-err { color: var(--err); font-weight:600; }
     .editor { width:100%; height:520px; border:1px solid var(--border); border-radius:12px; padding:.75rem .9rem;
-      background:#0b1020; color:#e6edf3; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background:#0b1020; color:#e6edf3; font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
       font-size:.92rem; line-height:1.4; tab-size:2; white-space:pre; overflow:auto; }
     .overlay { position:fixed; inset:0; background:rgba(255,255,255,.7); backdrop-filter: blur(2px);
                display:none; align-items:center; justify-content:center; z-index:50; }
@@ -51,11 +55,36 @@
                animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .hidden { display:none !important; }
+
+    /* ===== Upload Success Modal (matches issuer page) ===== */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:60; }
+    .modal { width:min(640px, calc(100vw - 2rem)); background:#fff; border-radius:14px; border:1px solid var(--border); box-shadow:0 20px 60px rgba(0,0,0,.35); }
+    .modal header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:#fff; }
+    .modal h3 { margin:0; font-size:1.05rem; }
+    .modal .body { padding:1rem 1.25rem; display:grid; gap:.75rem; }
+    .field { display:grid; gap:.35rem; }
+    .copy-row { display:flex; gap:.5rem; align-items:center; }
+    .copy-row input { flex:1; }
+    .modal footer {
+      padding:1rem 1.25rem;
+      display:flex; gap:.5rem; justify-content:flex-end; align-items:center; flex-wrap:wrap;
+      border-top:1px solid var(--border);
+    }
+    .modal footer a, .modal footer button { max-width:100%; }
+
+    @media (max-width: 420px) {
+      .modal footer { justify-content:stretch; }
+      .modal footer a, .modal footer button { width:100%; }
+    }
+
     @media (prefers-color-scheme: dark) {
       :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
       input[type="text"], input[type="file"], textarea, input[type="url"] { background:#151617; color:#e8eaed; }
       .secondary-btn { background:#0f172a; color:#cbd5e1; border:1px solid #334155; }
       .ghost-btn { color:#cbd5e1; border-color:#334155; }
+      .modal { background:#141618; }
+      .modal header { background:#141618; border-color:#2a2a2a; }
+      .modal footer { border-color:#2a2a2a; }
     }
   </style>
 </head>
@@ -91,7 +120,7 @@
       <section class="card-body">
         <form id="attestation-form" class="grid" autocomplete="off" enctype="multipart/form-data">
           <div class="row">
-            <label for="vct">VCT identifier</label>
+            <label for="vct">VCT identifier (URN)</label>
             <input id="vct" name="vct" type="text" required
                    placeholder="https://issuer.example.com/vct/your-credential"
                    value="{{ vct }}" />
@@ -165,7 +194,13 @@
             <button type="button" class="secondary-btn" id="validate-btn" disabled>Validate</button>
             <button type="button" class="ghost-btn" id="reset-btn" disabled>Reset to Server Result</button>
             <button type="button" class="secondary-btn" id="copy-btn" disabled>Copy</button>
+
+            <span class="spacer" aria-hidden="true"></span>
+
+            <!-- Save & Upload (Upload is on the RIGHT of Save) -->
             <button type="button" class="primary-btn" id="download-btn" disabled>Save JSON to Desktop</button>
+            <button type="button" class="primary-btn" id="upload-registry-btn" disabled>Upload to Registry</button>
+
             <span id="status" class="note editor-status"></span>
           </div>
 
@@ -186,6 +221,44 @@
     </div>
   </div>
 
+  <!-- ===== UPLOAD SUCCESS MODAL (same as issuer) ===== -->
+  <div class="modal-backdrop" id="upload-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title" aria-hidden="true">
+    <div class="modal">
+      <header>
+        <h3 id="upload-modal-title">VCT published to Registry</h3>
+        <button type="button" class="ghost-btn" id="upload-modal-close" aria-label="Close">Close</button>
+      </header>
+      <div class="body">
+        <p class="note">Share these values with implementers. They’re also embedded in the response headers of public downloads.</p>
+        <div class="field">
+          <label for="modal-vct-url">VCT URL</label>
+          <div class="copy-row">
+            <input id="modal-vct-url" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-vct-url">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modal-integrity">Integrity (SRI)</label>
+          <div class="copy-row">
+            <input id="modal-integrity" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-integrity">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modal-urn">VCT URN (hash id)</label>
+          <div class="copy-row">
+            <input id="modal-urn" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-urn">Copy</button>
+          </div>
+        </div>
+      </div>
+      <footer>
+        <button type="button" class="primary-btn" id="upload-modal-open">Open VCT</button>
+        <button type="button" class="primary-btn" id="upload-modal-ok">Done</button>
+      </footer>
+    </div>
+  </div>
+
   {% include "footer.html" %}
 
   <script>
@@ -201,9 +274,23 @@
     const validateBtn = document.getElementById('validate-btn');
     const resetBtn = document.getElementById('reset-btn');
     const copyBtn = document.getElementById('copy-btn');
+    const uploadBtn = document.getElementById('upload-registry-btn');
 
     const selectAllBtn = document.getElementById('select-all');
     const clearAllBtn = document.getElementById('clear-all');
+
+    // Inputs we may use to fill metadata if missing
+    const nameInput = document.getElementById('name');
+    const attestationDescInput = document.getElementById('description');
+
+    // Modal elements (same ids as issuer page)
+    const modalBackdrop = document.getElementById('upload-modal-backdrop');
+    const modalClose = document.getElementById('upload-modal-close');
+    const modalOk = document.getElementById('upload-modal-ok');
+    const modalOpenLink = document.getElementById('upload-modal-open');
+    const modalVctUrl = document.getElementById('modal-vct-url');
+    const modalIntegrity = document.getElementById('modal-integrity');
+    const modalUrn = document.getElementById('modal-urn');
 
     let lastBlobUrl = null;
     let lastFilename = null;
@@ -216,13 +303,14 @@
       resetBtn.disabled = !on;
       copyBtn.disabled = !on;
       downloadBtn.disabled = !on;
+      uploadBtn.disabled = !on;
       editorWrap.style.display = on ? 'grid' : 'none';
     }
     function setStatus(text, ok=null) {
       status.textContent = text || '';
-      status.classList.remove('editor-ok','editor-err');
-      if (ok === true) status.classList.add('editor-ok');
-      if (ok === false) status.classList.add('editor-err');
+      status.className = 'note editor-status';
+      if (ok === true) { status.classList.add('editor-ok'); }
+      if (ok === false) { status.classList.add('editor-err'); }
     }
     function getEditorText() { return editor.innerText.replace(/\u00A0/g, ' '); }
     function setEditorText(txt) { editor.textContent = txt; }
@@ -233,6 +321,36 @@
       lastFilename = filename;
       downloadBtn.disabled = false;
     }
+    function guessNameFromVct(obj){
+      const vct = String(obj.vct || '').split(/[/:]/).pop() || '';
+      return vct || 'vc_type';
+    }
+
+    // ===== Modal helpers (same behavior as issuer page) =====
+    function showModal(){ modalBackdrop.style.display = 'flex'; modalBackdrop.setAttribute('aria-hidden','false'); }
+    function hideModal(){ modalBackdrop.style.display = 'none'; modalBackdrop.setAttribute('aria-hidden','true'); }
+    [modalClose, modalOk].forEach(btn => btn.addEventListener('click', hideModal));
+    modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) hideModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideModal(); });
+    modalOpenLink.addEventListener('click', () => {
+      const url = modalVctUrl.value.trim();
+      if (url) window.open(url, '_blank', 'noopener');
+    });
+    // Copy buttons inside modal
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-copy]');
+      if (!btn) return;
+      const sel = btn.getAttribute('data-copy');
+      const inp = document.querySelector(sel);
+      if (!inp) return;
+      try {
+        await navigator.clipboard.writeText(inp.value || '');
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => btn.textContent = 'Copy', 1200);
+      } catch {
+        inp.select();
+      }
+    });
 
     selectAllBtn.addEventListener('click', () => {
       document.querySelectorAll('input[name="languages"]').forEach(cb => cb.checked = true);
@@ -345,6 +463,59 @@
         try { JSON.parse(text); setStatus('Draft is valid ✓', true); editorMsg.textContent = ''; }
         catch (e) { setStatus('Draft has JSON errors (you can still save)', false); editorMsg.textContent = e.message; }
       }, 250);
+    });
+
+    // ===== Upload to Registry (mirrors issuer page behavior) =====
+    uploadBtn.addEventListener('click', async () => {
+      const text = getEditorText().trim();
+      if (!text){ setStatus('Nothing to upload — generate or paste JSON first.', false); return; }
+
+      let obj;
+      try { obj = JSON.parse(text); }
+      catch(e){ setStatus('Invalid JSON: ' + (e.message || e), false); return; }
+
+      if (!obj.vct || !String(obj.vct).trim()){
+        setStatus('Missing required “vct” in JSON.', false);
+        return;
+      }
+
+      // Ensure name/description exist in uploaded JSON:
+      const uiName = (nameInput.value || '').trim();
+      const uiDesc = (attestationDescInput.value || '').trim();
+      if (!obj.name && uiName) obj.name = uiName;
+      if (!obj.description && uiDesc) obj.description = uiDesc;
+
+      // If still missing after trying to fill from UI, block with a helpful message
+      if (!obj.name){ setStatus('Please enter the VC type name (top of form) or add "name" in JSON.', false); nameInput.focus(); return; }
+      if (!obj.description){ setStatus('Please add a description (use your Attestation description or edit the JSON).', false); attestationDescInput.focus(); return; }
+
+      const fd = new FormData();
+      fd.append('file',
+        new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }),
+        (guessNameFromVct(obj) || 'vct') + '.json'
+      );
+      fd.append('publish', 'true'); // always public
+
+      setStatus('Uploading…', null);
+      showOverlay(true);
+      try{
+        const r = await fetch('/vct/registry/api/upload', { method:'POST', body: fd });
+        const data = await r.json().catch(()=>({}));
+        if (!r.ok) throw new Error(data.error || 'Upload failed');
+
+        setStatus('Uploaded and published ✓', true);
+
+        // Show success modal with copyable values
+        modalVctUrl.value = data.vct || '';
+        modalIntegrity.value = data.integrity || '';
+        modalUrn.value = data.vct_urn || '';
+        showModal();
+      }catch(e){
+        console.error(e);
+        setStatus(e.message || 'Upload failed', false);
+      }finally{
+        showOverlay(false);
+      }
     });
   </script>
 </body>

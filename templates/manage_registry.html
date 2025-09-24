@@ -303,13 +303,11 @@
 
       const tdAct  = document.createElement('td'); tdAct.className='row-actions';
       const dlVct = document.createElement('a'); dlVct.className='secondary-btn'; dlVct.textContent='Download VCT'; dlVct.href='/vct/registry/api/download/' + item.id;
-      const dlSchema = document.createElement('a'); dlSchema.className='ghost-btn'; dlSchema.textContent='Schema only'; dlSchema.href='/vct/registry/api/download_schema/' + item.id;
       const copyVctBtn = document.createElement('button'); copyVctBtn.type='button'; copyVctBtn.className='ghost-btn'; copyVctBtn.textContent='Copy VCT URL'; copyVctBtn.addEventListener('click', () => copyText(item.vct || ''));
       const copyIntBtn = document.createElement('button'); copyIntBtn.type='button'; copyIntBtn.className='ghost-btn'; copyIntBtn.textContent='Copy integrity'; copyIntBtn.addEventListener('click', () => copyText(item.integrity || ''));
       const score = document.createElement('span'); if (typeof item.score !== 'undefined'){ score.className='note'; score.textContent = `score: ${Number(item.score).toFixed(2)}`; }
 
       tdAct.appendChild(dlVct);
-      tdAct.appendChild(dlSchema);
       tdAct.appendChild(copyVctBtn);
       tdAct.appendChild(copyIntBtn);
       if (score.textContent) tdAct.appendChild(score);

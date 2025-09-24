@@ -2,55 +2,102 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>VCT Registry</title>
+  <title>Import VC Type — VCT Registry</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
   <style>
-    :root{ --blue:#1a73e8; --blue-dark:#1558b0; --surface:#ffffff; --border:#e3e3e3;
+    :root{ --google-blue:#1a73e8; --google-blue-dark:#1558b0; --surface:#ffffff; --border:#e3e3e3;
            --text:#202124; --subtext:#5f6368; --bg:#f8f9fa; --ok:#166534; --err:#991b1b; }
     body { margin:0; background:#f7f9fc; color:#333; font-family: Arial, sans-serif; }
 
-    .section { max-width:900px; margin:4rem auto; padding:0 2rem; }
-    .card { width:100%; background:var(--surface); border:1px solid var(--border);
+    /* --- Match create_from_scratch layout --- */
+    .section { max-width:1200px; margin:4rem auto; padding:0 2rem; }
+    .card { width:100%; max-width:1100px; margin:0 auto; background:var(--surface); border:1px solid var(--border);
             border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.06); overflow:hidden; }
     .card-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
-    .app-mark { width:28px; height:28px; border-radius:6px; background:var(--blue); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.95rem; }
-    .title { margin:0; font-size:1rem; font-weight:700; font-family:'Roboto'; }
-    .subtitle { margin:0; font-size:.9rem; color:var(--subtext); font-weight:400; font-family:'Roboto'; }
-
+    .app-mark { width:28px; height:28px; border-radius:6px; background:var(--google-blue); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.95rem; }
+    .title { margin:0; font-size:1rem; font-weight:700; font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .subtitle { margin:0; font-size:.9rem; color:var(--subtext); font-weight:400; font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
     .card-body { padding:1.25rem; display:grid; gap:1rem; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:1rem; }
+    .row { display:grid; gap:.5rem; }
+    label { font-weight:600; color:#1f2937; }
+    input[type="text"], input[type="file"], textarea, input[type="url"] {
+      width:100%; padding:.7rem .85rem; border:1px solid var(--border); border-radius:8px; font-size:.95rem; background:#fff;
+    }
     .note { color:var(--subtext); font-size:.9rem; }
 
+    /* Drag & drop zone */
     .dropzone { border:2px dashed var(--border); border-radius:12px; padding:1.25rem; background:#fff;
       display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; cursor:pointer; }
-    .dropzone.drag { border-color: var(--blue); background:#f0f6ff; }
+    .dropzone.drag { border-color: var(--google-blue); background:#f0f6ff; }
 
-    .primary-btn { appearance:none; border:none; cursor:pointer; text-decoration:none;
+    /* Actions + buttons — same system as scratch page */
+    .actions { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; }
+    .actions .spacer { flex:1 1 auto; }
+    .primary-btn, .secondary-btn, .ghost-btn {
+      appearance:none; border:none; cursor:pointer; text-decoration:none;
       padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
-      font-family:'Roboto'; background:var(--blue); color:#fff; }
-    .primary-btn:hover { background:var(--blue-dark); }
+      font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    }
+    .primary-btn { background:var(--google-blue); color:#fff; }
+    .primary-btn:hover { background:var(--google-blue-dark); }
+    .secondary-btn { background:#edf2ff; color:#1f3b8a; border:1px solid #c7d2fe; }
+    .ghost-btn { background:transparent; color:#111827; border:1px dashed var(--border); }
 
-    input[type="text"] { padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px; min-width:220px; }
-    input[name="vc-name"], input[name="vc-desc"] { min-width:260px; }
+    /* Editor */
+    .editor-wrap { display:grid; gap:.5rem; }
+    .editor-status { font-size:.85rem; color:var(--subtext); }
+    .editor-ok { color: var(--ok); font-weight:600; }
+    .editor-err { color: var(--err); font-weight:600; }
+    .editor { width:100%; height:520px; border:1px solid var(--border); border-radius:12px; padding:.75rem .9rem;
+      background:#0b1020; color:#e6edf3; font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:.92rem; line-height:1.4; tab-size:2; white-space:pre; overflow:auto; }
 
     .overlay { position:fixed; inset:0; background:rgba(255,255,255,.7); backdrop-filter: blur(2px);
                display:none; align-items:center; justify-content:center; z-index:50; }
-    .spinner { width:46px; height:46px; border-radius:999px; border:4px solid #d1d5db; border-top-color:var(--blue);
+    .spinner { width:46px; height:46px; border-radius:999px; border:4px solid #d1d5db; border-top-color:var(--google-blue);
                animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display:none !important; }
+
+    /* Success modal (same as scratch page) */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:60; }
+    .modal { width:min(640px, calc(100vw - 2rem)); background:#fff; border-radius:14px; border:1px solid var(--border); box-shadow:0 20px 60px rgba(0,0,0,.35); }
+    .modal header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:#fff; }
+    .modal h3 { margin:0; font-size:1.05rem; }
+    .modal .body { padding:1rem 1.25rem; display:grid; gap:.75rem; }
+    .field { display:grid; gap:.35rem; }
+    .copy-row { display:flex; gap:.5rem; align-items:center; }
+    .copy-row input { flex:1; }
+    .modal footer {
+      padding:1rem 1.25rem;
+      display:flex; gap:.5rem; justify-content:flex-end; align-items:center; flex-wrap:wrap;
+      border-top:1px solid var(--border);
+    }
+
+    @media (max-width: 420px) {
+      .modal footer { justify-content:stretch; }
+      .modal footer a, .modal footer button { width:100%; }
+    }
 
     @media (prefers-color-scheme: dark) {
       :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
-      .dropzone { background:#151617; }
+      input[type="text"], input[type="file"], textarea, input[type="url"] { background:#151617; color:#e8eaed; }
+      .secondary-btn { background:#0f172a; color:#cbd5e1; border:1px solid #334155; }
+      .ghost-btn { color:#cbd5e1; border-color:#334155; }
+      .modal { background:#141618; }
+      .modal header { background:#141618; border-color:#2a2a2a; }
+      .modal footer { border-color:#2a2a2a; }
     }
   </style>
 </head>
 
 <body>
   <header>
-    <div class="logo">
-      <strong><a href="/" style="color: var(--primary); text-decoration: none;">VC-REGISTRY.COM</a></strong>
+    <div>
+      <strong><a style="color: var(--primary); text-decoration: none;" href="/">VC-REGISTRY.COM</a></strong>
     </div>
     <div class="nav-group">
       <nav>
@@ -62,67 +109,214 @@
   </header>
 
   <main class="section">
-    <h1 style="text-align:center; margin:0 0 .5rem 0;">Import your VC Type from a file</h1>
+    <h1 style="text-align:center; margin:0 0 .5rem 0;">Import a VC Type from a file</h1>
     <p class="note" style="text-align:center; margin:0 0 1.25rem 0;">
-      Upload a <code>.json</code> VCT Type Metadata file. We’ll compute its <strong>sha256</strong> integrity and store it. You can optionally publish it to the public catalog.
+      Drag & drop or choose a <code>.json</code> VC Type Metadata file. You can edit it below before saving or uploading to the public registry.
     </p>
 
     <article class="card" aria-labelledby="upload-title">
       <header class="card-header">
-        <div class="app-mark" aria-hidden="true">R</div>
+        <div class="app-mark" aria-hidden="true">I</div>
         <div>
           <h2 class="title" id="upload-title">Add a VC Type to the Registry</h2>
-          <p class="subtitle">Upload a VCT Type Metadata JSON</p>
+          <p class="subtitle">Load → Edit → Validate → Upload</p>
         </div>
       </header>
 
-      <section class="card-body">
-        <div class="dropzone" id="dropzone">
-          <div>
-            <strong>Drop your VCT JSON here</strong>
-            <div class="note">or click “Choose file”</div>
+      <section class="card-body grid">
+        <!-- Dropzone & file controls -->
+        <div class="row">
+          <label for="file">Choose file</label>
+          <div class="dropzone" id="dropzone">
+            <div>
+              <strong>Drop your VCT JSON here</strong>
+              <div class="note">or click “Choose file”</div>
+            </div>
+            <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+              <label class="check"><input type="checkbox" checked id="publish-now"> Publish after upload</label>
+              <input type="text" id="vc-name" name="vc-name" placeholder="VC type name (required)" aria-label="VC type name" />
+              <input type="text" id="vc-desc" name="vc-desc" placeholder="VC type description (required)" aria-label="VC type description" />
+              <input type="file" id="file" accept="application/json,.json" />
+              <button id="load-btn" class="secondary-btn" type="button">Load into Editor</button>
+            </div>
           </div>
-          <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
-            <label class="switch"><input type="checkbox" checked id="publish-now"> Publish after upload</label>
-            <input type="text" id="vc-name" name="vc-name" placeholder="VC type name (required)" aria-label="VC type name" />
-            <input type="text" id="vc-desc" name="vc-desc" placeholder="VC type description (required)" aria-label="VC type description" />
-            <input type="file" id="file" accept="application/json,.json" />
-            <button id="upload-btn" class="primary-btn" type="button">Upload</button>
-          </div>
+          <div class="note" id="upload-status" style="min-height:1.2em;"></div>
         </div>
-        <div class="note" id="upload-status" style="min-height:1.2em;"></div>
+
+        <!-- Editor -->
+        <div class="row editor-wrap" id="editor-wrap" style="display:none;">
+          <label for="editor">Editable JSON</label>
+          <div id="editor" class="editor" contenteditable="true" spellcheck="false" aria-multiline="true" aria-label="Editable JSON"></div>
+          <span id="editor-msg" class="note"></span>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+          <button type="button" class="secondary-btn" id="format-btn" disabled>Format</button>
+          <button type="button" class="secondary-btn" id="validate-btn" disabled>Validate</button>
+          <button type="button" class="ghost-btn" id="reset-btn" disabled>Reset to Loaded File</button>
+          <button type="button" class="secondary-btn" id="copy-btn" disabled>Copy</button>
+
+          <span class="spacer" aria-hidden="true"></span>
+
+          <button type="button" class="primary-btn" id="download-btn" disabled>Save JSON to Desktop</button>
+          <button type="button" class="primary-btn" id="upload-registry-btn" disabled>Upload to Registry</button>
+
+          <span id="status" class="note editor-status"></span>
+        </div>
       </section>
     </article>
   </main>
 
   {% include "footer.html" %}
 
-  <div class="overlay" id="overlay">
+  <!-- Overlay -->
+  <div class="overlay" id="overlay" aria-live="polite" aria-busy="true">
     <div style="display:flex; flex-direction:column; align-items:center; gap:.75rem;">
-      <div class="spinner"></div>
-      <div class="mono">Working…</div>
+      <div class="spinner" aria-hidden="true"></div>
+      <div style="font-family: ui-monospace, Menlo, Consolas, monospace;">Working…</div>
+    </div>
+  </div>
+
+  <!-- Success modal (same as scratch page) -->
+  <div class="modal-backdrop" id="upload-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title" aria-hidden="true">
+    <div class="modal">
+      <header>
+        <h3 id="upload-modal-title">VCT published to Registry</h3>
+        <button type="button" class="ghost-btn" id="upload-modal-close" aria-label="Close">Close</button>
+      </header>
+      <div class="body">
+        <p class="note">Share these values with implementers. They’re also embedded in the response headers of public downloads.</p>
+        <div class="field">
+          <label for="modal-vct-url">VCT URL</label>
+          <div class="copy-row">
+            <input id="modal-vct-url" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-vct-url">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modal-integrity">Integrity (SRI)</label>
+          <div class="copy-row">
+            <input id="modal-integrity" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-integrity">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modal-urn">VCT URN (hash id)</label>
+          <div class="copy-row">
+            <input id="modal-urn" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-urn">Copy</button>
+          </div>
+        </div>
+      </div>
+      <footer>
+        <button type="button" class="primary-btn" id="upload-modal-open">Open VCT</button>
+        <button type="button" class="primary-btn" id="upload-modal-ok">Done</button>
+      </footer>
     </div>
   </div>
 
   <script>
+    // Elements
     const dz = document.getElementById('dropzone');
     const fileInput = document.getElementById('file');
     const publishNow = document.getElementById('publish-now');
-    const uploadBtn = document.getElementById('upload-btn');
+    const loadBtn = document.getElementById('load-btn');
+    const uploadBtn = document.getElementById('upload-registry-btn');
     const statusEl = document.getElementById('upload-status');
     const overlay = document.getElementById('overlay');
     const nameInput = document.getElementById('vc-name');
     const descriptionInput = document.getElementById('vc-desc');
 
+    // Editor controls (same behavior as create_from_scratch)
+    const editorWrap = document.getElementById('editor-wrap');
+    const editor = document.getElementById('editor');
+    const formatBtn = document.getElementById('format-btn');
+    const validateBtn = document.getElementById('validate-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const status = document.getElementById('status');
+    const editorMsg = document.getElementById('editor-msg');
+
+    // Modal elements (ids match scratch page)
+    const modalBackdrop = document.getElementById('upload-modal-backdrop');
+    const modalClose = document.getElementById('upload-modal-close');
+    const modalOk = document.getElementById('upload-modal-ok');
+    const modalOpenLink = document.getElementById('upload-modal-open');
+    const modalVctUrl = document.getElementById('modal-vct-url');
+    const modalIntegrity = document.getElementById('modal-integrity');
+    const modalUrn = document.getElementById('modal-urn');
+
+    // State
+    let lastBlobUrl = null;
+    let lastFilename = null;
+    let loadedJsonText = ''; // original loaded file content
+    let changeTimer;
+
+    // Utils
     function overlayOn(on){ overlay.style.display = on ? 'flex' : 'none'; }
-    function setStatus(text, ok=null){
+    function setTopStatus(text, ok=null){
       statusEl.textContent = text || '';
       statusEl.style.color = ok === false ? '#991b1b' : ok === true ? '#166534' : '';
     }
+    function setStatus(text, ok=null) {
+      status.textContent = text || '';
+      status.className = 'note editor-status';
+      if (ok === true) { status.classList.add('editor-ok'); }
+      if (ok === false) { status.classList.add('editor-err'); }
+    }
+    function enableEditorTools(on){
+      formatBtn.disabled = !on;
+      validateBtn.disabled = !on;
+      resetBtn.disabled = !on;
+      copyBtn.disabled = !on;
+      downloadBtn.disabled = !on;
+      uploadBtn.disabled = !on;
+      editorWrap.style.display = on ? 'grid' : 'none';
+    }
+    function getEditorText(){ return editor.innerText.replace(/\u00A0/g, ' '); }
+    function setEditorText(txt){ editor.textContent = txt; }
+    function makeDownload(text, filename){
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      lastBlobUrl = URL.createObjectURL(blob);
+      lastFilename = filename;
+      downloadBtn.disabled = false;
+    }
+    function guessNameFromVct(obj){
+      const vct = String(obj.vct || '').split(/[/:]/).pop() || '';
+      return vct || 'vc_type';
+    }
 
-    // drag-drop styling
-    ;['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
-    ;['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+    // Modal helpers
+    function showModal(){ modalBackdrop.style.display = 'flex'; modalBackdrop.setAttribute('aria-hidden','false'); }
+    function hideModal(){ modalBackdrop.style.display = 'none'; modalBackdrop.setAttribute('aria-hidden','true'); }
+    [modalClose, modalOk].forEach(btn => btn.addEventListener('click', hideModal));
+    modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) hideModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideModal(); });
+    modalOpenLink.addEventListener('click', () => {
+      const url = modalVctUrl.value.trim();
+      if (url) window.open(url, '_blank', 'noopener');
+    });
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-copy]');
+      if (!btn) return;
+      const sel = btn.getAttribute('data-copy');
+      const inp = document.querySelector(sel);
+      if (!inp) return;
+      try {
+        await navigator.clipboard.writeText(inp.value || '');
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => btn.textContent = 'Copy', 1200);
+      } catch {
+        inp.select();
+      }
+    });
+
+    // Drag & drop wiring
+    ['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
     dz.addEventListener('drop', e => {
       if (e.dataTransfer.files.length) {
         fileInput.files = e.dataTransfer.files;
@@ -130,7 +324,7 @@
       }
     });
 
-    // pick English display block if exists
+    // Helpers to extract name/description
     function pickDisplayBlock(obj) {
       const arr = Array.isArray(obj?.display) ? obj.display : [];
       const en = arr.find(it => it && typeof it === 'object' && typeof it.lang === 'string' && it.lang.toLowerCase().startsWith('en'));
@@ -148,9 +342,10 @@
       const schema = obj.schema || {};
       const name = obj.name || disp.name || schema.title || guessNameFromVctOrFilename(obj, file);
       const description = obj.description || disp.description || schema.description || '';
-      return { name: String(name||'').trim(), description: String(description||'').trim() };
+      return { name: String(name||'').trim(), description: String(description||'').trim(), obj };
     }
 
+    // When a file is picked, pre-fill name/description
     fileInput.addEventListener('change', async () => {
       const f = fileInput.files && fileInput.files[0];
       if (!f) return;
@@ -158,37 +353,146 @@
         const { name, description } = await extractMetaFromFile(f);
         if (name && !nameInput.value.trim()) nameInput.value = name;
         if (description && !descriptionInput.value.trim()) descriptionInput.value = description;
-        if (!name || !description) {
-          const missing = [!name ? 'name':null, !description ? 'description':null].filter(Boolean).join(' & ');
-          setStatus('Missing '+missing+' — please fill before uploading.', false);
-        } else {
-          setStatus('Loaded name & description from file ✓', true);
-        }
-      } catch(e){ setStatus('Invalid JSON: '+(e.message||e), false); }
+        setTopStatus('File ready — click "Load into Editor" to edit.', true);
+      } catch(e){ setTopStatus('Invalid JSON: '+(e.message||e), false); }
     });
 
-    uploadBtn.addEventListener('click', async () => {
+    // Load into editor
+    loadBtn.addEventListener('click', async () => {
       const f = fileInput.files && fileInput.files[0];
-      const name = (nameInput.value||'').trim();
-      const description = (descriptionInput.value||'').trim();
-      if (!f){ setStatus('Please choose a JSON file first.', false); return; }
-      if (!name){ setStatus('Please enter the VC type name.', false); nameInput.focus(); return; }
-      if (!description){ setStatus('Please enter the VC description.', false); descriptionInput.focus(); return; }
+      if (!f){ setTopStatus('Please choose a JSON file first.', false); return; }
+      overlayOn(true);
+      try{
+        const raw = await f.text();
+        // Keep original text for "Reset"
+        let parsed; try{ parsed = JSON.parse(raw); }catch(e){ throw new Error('Invalid JSON: ' + e.message); }
+        loadedJsonText = JSON.stringify(parsed, null, 2);
+        setEditorText(loadedJsonText);
+        enableEditorTools(true);
 
-      setStatus('Preparing upload…'); overlayOn(true);
+        // Setup filename for download
+        const vct = (String(parsed.vct || guessNameFromVct(parsed)) || 'vc_type')
+          .toString().split('/').pop().split('.').pop().replace(/[^a-z0-9_-]/gi,'_');
+        const ts = new Date().toISOString().replace(/[:.]/g,'-');
+        const filename = `vct_${vct}_${ts}.json`;
+        makeDownload(loadedJsonText, filename);
+
+        // If name/desc missing in file, encourage filling
+        const missing = [];
+        if (!parsed.name && !nameInput.value.trim()) missing.push('name');
+        if (!parsed.description && !descriptionInput.value.trim()) missing.push('description');
+        setStatus(missing.length ? ('Loaded. Missing '+missing.join(' & ')+'. You can add them here or in JSON.') : 'Loaded ✓', missing.length ? null : true);
+        setTopStatus('Loaded into editor. You can now edit, validate, and upload.', true);
+      }catch(e){
+        setTopStatus(e.message || 'Failed to load file', false);
+      }finally{
+        overlayOn(false);
+      }
+    });
+
+    // Editor live validation + save link refreshing
+    editor.addEventListener('input', () => {
+      clearTimeout(changeTimer);
+      changeTimer = setTimeout(() => {
+        const text = getEditorText();
+        if (lastFilename) makeDownload(text, lastFilename);
+        try { JSON.parse(text); setStatus('Draft is valid ✓', true); editorMsg.textContent = ''; }
+        catch (e) { setStatus('Draft has JSON errors (you can still save)', false); editorMsg.textContent = e.message; }
+      }, 250);
+    });
+
+    // Editor buttons
+    formatBtn.addEventListener('click', () => {
       try {
-        const rawText = await f.text();
-        let obj; try{ obj=JSON.parse(rawText);}catch(e){ throw new Error('Invalid JSON: '+e.message); }
-        obj.name=name; obj.description=description;
-        const blob = new Blob([JSON.stringify(obj,null,2)], {type:'application/json'});
-        const fd = new FormData(); fd.append('file', blob, f.name||'vct.json'); fd.append('publish', publishNow.checked?'true':'false');
-        setStatus('Uploading…');
-        const resp = await fetch('/vct/registry/api/upload',{method:'POST',body:fd});
-        const data = await resp.json().catch(()=>({}));
-        if(!resp.ok) throw new Error(data.error||'Upload failed');
-        setStatus(data.is_public?'Added and published ✓':'Added ✓', true);
-        fileInput.value=''; publishNow.checked=true; nameInput.value=''; descriptionInput.value='';
-      }catch(e){ setStatus(e.message||'Upload failed', false);}finally{ overlayOn(false); }
+        const parsed = JSON.parse(getEditorText());
+        const pretty = JSON.stringify(parsed, null, 2);
+        setEditorText(pretty);
+        setStatus('Formatted ✓', true);
+        editorMsg.textContent = '';
+        if (lastFilename) makeDownload(pretty, lastFilename);
+      } catch (e) {
+        setStatus('Invalid JSON — cannot format', false);
+        editorMsg.textContent = e.message;
+      }
+    });
+    validateBtn.addEventListener('click', () => {
+      try { JSON.parse(getEditorText()); setStatus('JSON is valid ✓', true); editorMsg.textContent=''; }
+      catch(e){ setStatus('Invalid JSON', false); editorMsg.textContent = e.message; }
+    });
+    resetBtn.addEventListener('click', () => {
+      if (!loadedJsonText) return;
+      setEditorText(loadedJsonText);
+      setStatus('Reset to loaded file', null);
+      editorMsg.textContent = '';
+      if (lastFilename) makeDownload(loadedJsonText, lastFilename);
+    });
+    copyBtn.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(getEditorText()); setStatus('Copied ✓', true); }
+      catch { setStatus('Copy failed', false); }
+    });
+    downloadBtn.addEventListener('click', () => {
+      if (!lastBlobUrl) return;
+      const a = document.createElement('a');
+      a.href = lastBlobUrl;
+      a.download = lastFilename || 'vc_type_metadata.json';
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+
+    // Upload to Registry (mirrors scratch page behavior)
+    uploadBtn.addEventListener('click', async () => {
+      const text = getEditorText().trim();
+      if (!text){ setStatus('Nothing to upload — load a file first.', false); return; }
+
+      let obj;
+      try { obj = JSON.parse(text); }
+      catch(e){ setStatus('Invalid JSON: ' + (e.message || e), false); return; }
+
+      if (!obj.vct || !String(obj.vct).trim()){
+        setStatus('Missing required “vct” in JSON.', false);
+        return;
+      }
+
+      // Ensure name/description exist (take from UI if missing)
+      const uiName = (nameInput.value || '').trim();
+      const uiDesc = (descriptionInput.value || '').trim();
+      if (!obj.name && uiName) obj.name = uiName;
+      if (!obj.description && uiDesc) obj.description = uiDesc;
+
+      if (!obj.name){ setStatus('Please enter the VC type name (left of file picker) or add "name" in JSON.', false); nameInput.focus(); return; }
+      if (!obj.description){ setStatus('Please add a description (left of file picker) or in the JSON.', false); descriptionInput.focus(); return; }
+
+      const fd = new FormData();
+      fd.append('file',
+        new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }),
+        (guessNameFromVct(obj) || 'vct') + '.json'
+      );
+      fd.append('publish', publishNow.checked ? 'true' : 'false');
+
+      setStatus('Uploading…', null);
+      overlayOn(true);
+      try{
+        const r = await fetch('/vct/registry/api/upload', { method:'POST', body: fd });
+        const data = await r.json().catch(()=>({}));
+        if (!r.ok) throw new Error(data.error || 'Upload failed');
+
+        const wasPublic = !!data.is_public || publishNow.checked;
+        setStatus(wasPublic ? 'Uploaded and published ✓' : 'Uploaded ✓ (not public)', true);
+        setTopStatus(wasPublic ? 'Published to registry.' : 'Added to registry (private).', true);
+
+        // Show success modal only when public (same UX as scratch page which always publishes)
+        if (wasPublic) {
+          modalVctUrl.value = data.vct || '';
+          modalIntegrity.value = data.integrity || '';
+          modalUrn.value = data.vct_urn || '';
+          showModal();
+        }
+      }catch(e){
+        console.error(e);
+        setStatus(e.message || 'Upload failed', false);
+        setTopStatus(e.message || 'Upload failed', false);
+      }finally{
+        overlayOn(false);
+      }
     });
   </script>
 </body>
