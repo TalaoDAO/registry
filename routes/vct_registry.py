@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import requests
 import hashlib
 import json
 import os
@@ -136,6 +137,25 @@ def _extract_languages_supported_from_vct(vct_json: Dict[str, Any]) -> List[str]
         push((d or {}).get("locale"))
     return langs
 
+
+def _image_url_to_data_uri(url: str, *, timeout: float = 15.0) -> str:
+    """
+    Fetch an image and return a data: URI string like 'data:image/png;base64,....'
+    Raises requests.HTTPError on non-2xx responses.
+    """
+    headers = {"User-Agent": "img-fetch/1.0"}
+    try:
+        r = requests.get(url, timeout=timeout, headers=headers, stream=True)
+        r.raise_for_status()
+    except Exception:
+        return ""
+    # Try to get the MIME type from the server; default to octet-stream.
+    mime = r.headers.get("Content-Type", "application/octet-stream").split(";")[0].strip()
+    # Read the bytes (since we set stream=True, call r.content to load them)
+    data = r.content
+    b64 = base64.b64encode(data).decode("ascii")
+    return f"data:{mime};base64,{b64}"
+
 def _extract_keywords(vct_json: Dict[str, Any]) -> List[str]:
     kws: List[str] = []
     def add(x: Optional[str]):
@@ -149,17 +169,20 @@ def _extract_keywords(vct_json: Dict[str, Any]) -> List[str]:
     for d in vct_json.get("display", []) or []:
         add((d or {}).get("name")); add((d or {}).get("description"))
     schema = vct_json.get("schema") or {}
-    for k in (schema or {}).get("properties", {}) .keys():
+    for k in (schema or {}).get("properties", {}).keys():
         add(k)
     for c in vct_json.get("claims", []) or []:
         for seg in (c or {}).get("path") or []:
-            if seg != "[]": add(seg)
+            # ✅ only add real strings; skip "[]"
+            if isinstance(seg, str) and seg != "[]":
+                add(seg)
     for t in (vct_json.get("tags") or []): add(t)
     for t in (vct_json.get("keywords") or []): add(t)
     for _l in _extract_languages_supported_from_vct(vct_json):
         if _l not in kws:
             kws.append(_l)
     return kws
+
 
 def _build_search_text(vct_json: Dict[str, Any]) -> str:
     chunks: List[str] = []
@@ -173,11 +196,16 @@ def _build_search_text(vct_json: Dict[str, Any]) -> str:
     add(schema.get("title"))
     add(" ".join(list((schema or {}).get("properties", {}).keys())))
     for c in vct_json.get("claims", []) or []:
-        add("/".join([seg for seg in ((c or {}).get("path") or []) if seg != "[]"]))
+        p = (c or {}).get("path") or []
+        # ✅ keep only real strings and drop "[]"
+        parts = [seg for seg in p if isinstance(seg, str) and seg != "[]"]
+        if parts:
+            add("/".join(parts))
     # add languages
     langs = _extract_languages_supported_from_vct(vct_json)
     add(" ".join(langs))
     return (" ".join(chunks)).lower()
+
 
 def _schema_hash(schema_obj) -> str:
     """Canonical hash of a schema dict (sorted, compact JSON)."""
@@ -370,15 +398,15 @@ def vct_publish(vct_urn: str):
 def api_vct_list():
     """
     GET with optional filters:
-      scope: public|my|all|private
-      q: text
-      languages: comma-separated (matches languages_supported JSON string)
-      prop: substring to match in search_text (schema properties etc.)
-      claim: substring to match in search_text (claim paths etc.)
-      min_rating: float
-      min_calls: int
-      has_schema: 1|true|yes
-      sort: pop|rating|calls|newest|name  (default: newest if no q; DB order if q)
+    scope: public|my|all|private
+    q: text
+    languages: comma-separated (matches languages_supported JSON string)
+    prop: substring to match in search_text (schema properties etc.)
+    claim: substring to match in search_text (claim paths etc.)
+    min_rating: float
+    min_calls: int
+    has_schema: 1|true|yes
+    sort: pop|rating|calls|newest|name  (default: newest if no q; DB order if q)
     """
     requested_scope = (request.args.get("scope") or "public").lower()
     q = (request.args.get("q") or "").strip()
@@ -489,6 +517,33 @@ def api_vct_list():
             
         is_owner = (is_owner_id is not None and r.user_id == is_owner_id)
         can_modify = bool(is_admin or is_owner)
+        white_text_color = "#ffffff" # White
+        grey_background_color = "#D6D9DD" # Grey
+        try:
+            rendering_simple = json.loads(r.vct_data)["display"][0]["rendering"]["simple"]
+            text_color = rendering_simple.get("text_color", "")
+            background_color = rendering_simple.get("background_color", "")
+            background_image_uri = rendering_simple.get("background_image", {}).get("uri", "")
+            logo_uri = rendering_simple.get("logo", {}).get("uri", "")
+            logo_alt_text = rendering_simple.get("logo", {}).get("alt_text", "")
+            background_image_alt_text = rendering_simple.get("background_image", {}).get("alt_text", "")
+        except Exception:
+            logging.warning("there is no rendering simple data")
+            text_color = ""
+            background_color = ""
+            logo_uri = ""
+            background_image_uri = ""
+            logo_alt_text = ""
+            background_image_alt_text = ""
+        
+        if background_image_uri.startswith("http"):
+            background_image_uri = _image_url_to_data_uri(background_image_uri)
+        if logo_uri.startswith("http"):
+            logo_uri = _image_url_to_data_uri(logo_uri)
+
+            
+        print("name = ", r.name, text_color, background_color, background_image_uri, logo_uri)        
+        
         base = {
             "id": r.id,
             "name": r.name,
@@ -502,7 +557,14 @@ def api_vct_list():
             "updated_at": (r.updated_at.isoformat() if r.updated_at else None),
             "is_owner": is_owner,
             "can_modify": can_modify,
-            "schema_props_count": schema_props_count
+            "schema_props_count": schema_props_count,
+            "text_color": text_color,
+            "background_color": background_color,
+            "logo_uri": logo_uri,
+            "background_image_uri": background_image_uri,
+            "logo_alt_text": logo_alt_text,
+            "background_image_alt_text": background_image_alt_text
+            
         }
         base.update(_rating_payload_full(r, user_id=(current_user.id if is_auth else None)))
         base.update({"score": _pop_score(r)})  # popularity-only score

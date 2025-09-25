@@ -63,7 +63,78 @@
     .hint { color:#6b7280; font-size:.9rem; padding:1rem; }
 
     .filters { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
-  
+
+    /* ---- VCT Card column ---- */
+    .vct-card {
+      aspect-ratio: 85.6 / 53.98; /* ~1.586, ID-1 bank card ratio */
+      width: 260px;
+      max-width: 300px;
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      display: grid;
+      align-items: end;
+      padding: .75rem .9rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+      background-size: cover;
+      background-position: center;
+      border: 1px solid #e5e7eb;
+      text-decoration: none; /* ensure no underline when inside <a> */
+      transition: transform .12s ease, box-shadow .12s ease;
+      cursor: pointer;
+    }
+    .vct-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 28px rgba(0,0,0,.12);
+    }
+    .vct-card .vct-name {
+      font-weight: 700;
+      line-height: 1.2;
+      font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      font-size: .95rem;
+      z-index: 1;
+      text-shadow: 0 1px 2px rgba(0,0,0,.2);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vct-card .logo-wrap {
+      position: absolute;
+      top: .55rem;
+      left: .55rem; /* logo on the left */
+      min-width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.85);
+      display: grid;
+      place-content: center;
+      padding: 4px 8px;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,.06);
+      box-sizing: border-box;
+    }
+    .vct-card .logo-wrap img {
+      max-width: 80%;
+      max-height: 80%;
+      display: block;
+      object-fit: contain;
+    }
+    .vct-card .logo-wrap span {
+      font-size: .75rem;
+      font-weight: 600;
+      color: #111827;
+      white-space: nowrap;
+    }
+    .vct-card::after {
+      /* subtle gradient to improve text readability on images */
+      content: "";
+      position: absolute;
+      inset: 0 0 0 0;
+      background: linear-gradient(to top, rgba(0,0,0,.28), rgba(0,0,0,.0) 60%);
+      pointer-events: none;
+    }
+
     /* Toast for copy feedback */
     .toast {
       position: fixed;
@@ -82,7 +153,6 @@
       font-size: .9rem;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
-
   </style>
 </head>
 <body>
@@ -113,9 +183,6 @@
           <div class="left">
             <select id="scope" title="Visibility">
               <option value="public" selected>Public</option>
-        <!--      <option value="all">All (admin)</option>
-              <option value="my">Mine</option>
-              <option value="private">Private</option> -->
             </select>
 
             <input id="search" type="text" placeholder="Search name, description, properties, claims…" />
@@ -127,8 +194,6 @@
           <div class="right">
             <div class="filters">
               <select id="sort" title="Sort by">
-            <!--    <option value="">Relevance / Popularity</option>
-                <option value="pop">Most popular</option>  -->
                 <option value="rating">Highest rating</option>
                 <option value="calls">Most called</option>
                 <option value="newest">Newest</option>
@@ -136,7 +201,7 @@
               </select>
 
               <input id="languages" type="text" placeholder="Languages (e.g. en,fr)" title="Comma-separated list, matches languages_supported" />
-             <input hidden id="prop" type="text" placeholder="Schema property contains…" /> 
+              <input hidden id="prop" type="text" placeholder="Schema property contains…" /> 
               <input id="claim" type="text" placeholder="Claim path contains…" />
               <input id="min_rating" type="number" min="0" max="5" step="0.1" placeholder="Min ★" />
               <input id="min_calls" type="number" min="0" step="1" placeholder="Min calls" />
@@ -153,11 +218,11 @@
           <table>
             <thead>
               <tr>
-                <th style="width:20%;">Name</th>
-                <th style="width:35%;">Description</th>
-                <th style="width:15%;">Languages</th>
-                <th style="width:15%;">Popularity</th>
-                <th style="width:15%;">Actions</th>
+                <th style="width:32%;">Card</th>
+                <th style="width:30%;">Description</th>
+                <th style="width:13%;">Languages</th>
+                <th style="width:13%;">Popularity</th>
+                <th style="width:12%;">Actions</th>
               </tr>
             </thead>
             <tbody id="rows">
@@ -218,14 +283,12 @@
     async function copyText(text){
       const s = String(text || '');
       if (!s) return false;
-      // Try modern API in secure contexts
       try{
         if (navigator.clipboard && window.isSecureContext){
           await navigator.clipboard.writeText(s);
           return true;
         }
       }catch(e){ /* fallthrough */ }
-      // Fallback for http or older browsers
       try{
         const ta = document.createElement('textarea');
         ta.value = s;
@@ -241,8 +304,6 @@
         return false;
       }
     }
-
-
 
     // ---- Stars (READ-ONLY)
     function starEl(filled){ const el = document.createElement('span'); el.className = 'star' + (filled ? ' filled':'' ); el.textContent = '★'; return el; }
@@ -263,6 +324,122 @@
       return wrap;
     }
 
+    // ---- Helpers
+    function safeUrl(u){
+      try {
+        const s = String(u || '').trim();
+        if (!s) return '';
+        // allow data: and blob: URIs
+        if (s.startsWith('data:') || s.startsWith('blob:')) return s;
+        const url = new URL(s, window.location.origin);
+        return url.href;
+      } catch(e){ return ''; }
+    }
+    function getBackgroundImage(item){
+      // Handle expected key and a possible legacy typo
+      return item.background_image_uri || item["background image_uri"] || '';
+    }
+
+    function buildVCTCard(item){
+      const textColor = String(item.text_color || '#ffffff');
+      const bgColor = String(item.background_color || '');
+      const bgImage = safeUrl(getBackgroundImage(item));
+      const logo = safeUrl(item.logo_uri || '');
+      const bgAlt = item.background_image_alt_text || '';
+      const logoAlt = item.logo_alt_text || '';
+
+      // Visual card
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'vct-card';
+
+      // Background: image → alt text → color → initials
+      if (bgImage){
+        cardDiv.style.backgroundImage = `url("${bgImage}")`;
+        cardDiv.style.backgroundColor = bgColor || '#e5e7eb'; // fallback while image loads
+      } else if (bgAlt){
+        cardDiv.style.background = '#e5e7eb';
+        const altEl = document.createElement('div');
+        altEl.style.position = 'absolute';
+        altEl.style.inset = 0;
+        altEl.style.display = 'flex';
+        altEl.style.alignItems = 'center';
+        altEl.style.justifyContent = 'center';
+        altEl.style.fontSize = '1rem';
+        altEl.style.fontWeight = '600';
+        altEl.style.color = '#374151';
+        altEl.textContent = bgAlt;
+        cardDiv.appendChild(altEl);
+      } else if (bgColor) {
+        cardDiv.style.background = bgColor;
+      } else {
+        // No background image, alt text, or color → initials
+        cardDiv.style.background = '#e5e7eb';
+        const initials = (item.name || 'VC')
+          .split(/\s+/)
+          .map(w => w[0])
+          .join('')
+          .substring(0, 3)
+          .toUpperCase();
+        const placeholder = document.createElement('div');
+        placeholder.style.position = 'absolute';
+        placeholder.style.inset = 0;
+        placeholder.style.display = 'flex';
+        placeholder.style.alignItems = 'center';
+        placeholder.style.justifyContent = 'center';
+        placeholder.style.fontSize = '1.2rem';
+        placeholder.style.fontWeight = '700';
+        placeholder.style.color = '#374151';
+        placeholder.textContent = initials;
+        cardDiv.appendChild(placeholder);
+      }
+
+      // VCT Name (bottom)
+      const name = document.createElement('div');
+      name.className = 'vct-name';
+      name.style.color = textColor;
+      name.textContent = item.name || '(unnamed)';
+
+      // Logo (top-left): image → alt text
+      if (logo){
+        const logoWrap = document.createElement('div');
+        logoWrap.className = 'logo-wrap';
+        const img = document.createElement('img');
+        img.alt = logoAlt || 'logo';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.src = logo;
+        logoWrap.appendChild(img);
+        cardDiv.appendChild(logoWrap);
+      } else if (logoAlt){
+        const logoWrap = document.createElement('div');
+        logoWrap.className = 'logo-wrap';
+        const span = document.createElement('span');
+        span.textContent = logoAlt;
+        logoWrap.appendChild(span);
+        cardDiv.appendChild(logoWrap);
+      }
+
+      cardDiv.appendChild(name);
+
+      // Make whole card clickable
+      const link = document.createElement('a');
+      link.href = item.vct || '#';
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.style.textDecoration = 'none';
+      link.appendChild(cardDiv);
+
+      // If no VCT URL, disable click feel
+      if (!item.vct){
+        link.href = '#';
+        link.addEventListener('click', (e) => e.preventDefault());
+        link.title = 'No VCT URL available';
+        cardDiv.style.cursor = 'default';
+      }
+
+      return link;
+    }
+
     // ---- Row rendering
     function renderRows(data){
       rows.innerHTML = '';
@@ -272,9 +449,9 @@
       data.forEach(item => {
         const tr = document.createElement('tr');
 
-        // Name
-        const tdName = document.createElement('td');
-        tdName.innerHTML = `<a href="${item.vct}" target="_blank" rel="noopener" class="mono" title="${item.name}">${item.name}</a>`;
+        // Card (clickable)
+        const tdCard = document.createElement('td');
+        tdCard.appendChild(buildVCTCard(item));
 
         // Description
         const tdDescription = document.createElement('td');
@@ -305,7 +482,7 @@
         dl.setAttribute('title', 'Download VCT JSON');
         tdActions.appendChild(dl);
 
-                // Copy VCT URL
+        // Copy VCT URL
         const copyVctBtn = document.createElement('button');
         copyVctBtn.type = 'button';
         copyVctBtn.className = 'ghost-btn';
@@ -317,7 +494,7 @@
         });
         tdActions.appendChild(copyVctBtn);
 
-                // Copy Integrity
+        // Copy Integrity
         const copyIntBtn = document.createElement('button');
         copyIntBtn.type = 'button';
         copyIntBtn.className = 'ghost-btn';
@@ -329,23 +506,19 @@
         });
         tdActions.appendChild(copyIntBtn);
 
-
-        // NEW: Extend button → pass row_id and integrity for extends#integrity
+        // Extend button
         const ext = document.createElement('a');
         ext.className = 'secondary-btn';
         ext.textContent = 'Extend this VCT';
         ext.href = `/vct/registry/extend?row_id=${encodeURIComponent(item.id)}&integrity=${encodeURIComponent(item.integrity||'')}`;
         ext.title = 'Create a child VCT that extends this one';
-        //actions.appendChild(ext);
-
         tdActions.appendChild(ext);
-
 
         // Disable buttons when values are missing
         if (!item.vct) copyVctBtn.disabled = true;
         if (!item.integrity) copyIntBtn.disabled = true;
 
-        tr.appendChild(tdName);
+        tr.appendChild(tdCard);
         tr.appendChild(tdDescription);
         tr.appendChild(tdLangs);
         tr.appendChild(tdPop);
