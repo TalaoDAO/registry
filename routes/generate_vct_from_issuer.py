@@ -533,6 +533,7 @@ def api_propose_name_desc():
             return jsonify({"error": "config_not_found"}), 404
 
         # Build a draft VCT for that configuration
+        print("before vct")
         vct = generate_vc_type_metadata_from_issuer(
             issuer=issuer_url,
             vct=str(cfg.get("vct") or cfg.get("type") or config_id),
@@ -540,6 +541,7 @@ def api_propose_name_desc():
             config_id=config_id,
             vct_match=vct_match or cfg.get("vct"),
         )
+        print("draft vc = ", vct)
 
         # Prefer any embedded English display first
         name = _preferred_en_name(vct)

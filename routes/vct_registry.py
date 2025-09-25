@@ -517,8 +517,8 @@ def api_vct_list():
             
         is_owner = (is_owner_id is not None and r.user_id == is_owner_id)
         can_modify = bool(is_admin or is_owner)
-        white_text_color = "#ffffff" # White
-        grey_background_color = "#D6D9DD" # Grey
+        #white_text_color = "#ffffff" # White
+        #grey_background_color = "#D6D9DD" # Grey
         try:
             rendering_simple = json.loads(r.vct_data)["display"][0]["rendering"]["simple"]
             text_color = rendering_simple.get("text_color", "")
@@ -536,11 +536,12 @@ def api_vct_list():
             logo_alt_text = ""
             background_image_alt_text = ""
         
+        """
         if background_image_uri.startswith("http"):
             background_image_uri = _image_url_to_data_uri(background_image_uri)
         if logo_uri.startswith("http"):
             logo_uri = _image_url_to_data_uri(logo_uri)
-
+        """
             
         print("name = ", r.name, text_color, background_color, background_image_uri, logo_uri)        
         

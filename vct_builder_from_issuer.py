@@ -80,10 +80,13 @@ def _wk_issuer_metadata_url(issuer: str) -> str:
 
 
 def _http_get_json(url: str, *, timeout: float = 8.0) -> Any:
-    r = requests.get(url, timeout=timeout)
-    r.raise_for_status()
-    # Some issuers serve text/plain
-    return json.loads(r.text)
+    try:
+        r = requests.get(url, timeout=timeout) 
+        r.raise_for_status()
+        # Some issuers serve text/plain
+        return json.loads(r.text)
+    except:
+        return {}
 
 
 def _objectify_credentials_supported(lst: Iterable[Any]) -> Dict[str, Any]:
@@ -213,9 +216,12 @@ def _image_url_to_data_uri(url: str, *, timeout: float = 15.0) -> str:
     Fetch an image and return a data: URI string like 'data:image/png;base64,....'
     Raises requests.HTTPError on non-2xx responses.
     """
-    headers = {"User-Agent": "img-fetch/1.0"}
-    r = requests.get(url, timeout=timeout, headers=headers, stream=True)
-    r.raise_for_status()
+    try:
+        headers = {"User-Agent": "img-fetch/1.0"}
+        r = requests.get(url, timeout=timeout, headers=headers, stream=True)
+        r.raise_for_status()
+    except:
+        return ""
     # Try to get the MIME type from the server; default to octet-stream.
     mime = r.headers.get("Content-Type", "application/octet-stream").split(";")[0].strip()
     # Read the bytes (since we set stream=True, call r.content to load them)
@@ -237,6 +243,8 @@ def _sri_sha256_from_url(uri: str) -> str:
     if data_image:
         digest = hashlib.sha256(data_image.encode()).digest()
         return "sha256-" + base64.b64encode(digest).decode("ascii")
+    else:
+        return ""
 
 
 def _schema_from_claims_descriptions(cds: List[Mapping[str, Any]]) -> Dict[str, Any]:
