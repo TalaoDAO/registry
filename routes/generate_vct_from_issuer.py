@@ -318,8 +318,9 @@ def _upload_vct_json(vct_json: Dict[str, Any], *, publish: bool, owner: User) ->
     """Insert a VCT row like the UI upload. Return minimal fields for the UI."""
     
     # 0) Schema de-dup
-    sch = vct_json.get("schema")
-    schema_hash = _schema_hash(sch) if sch else ""
+    #sch = vct_json.get("schema")
+    #schema_hash = _schema_hash(sch) if sch else ""
+    schema_hash = ""
     #if schema_hash:
     #    existing = VCTRegistry.query.filter_by(schema_hash=schema_hash).first()
     #    if existing:
@@ -394,12 +395,14 @@ def _mark_log(log: VCTImportLog, **updates) -> None:
 
 def _process_one_config(issuer_url: str, cid: str, cfg: Dict[str, Any], *, publish_default: bool, llm_on: bool) -> Dict[str, Any]:
     """Build + upload one VCT for a given SD-JWT config."""
-        
+    
     content_hash = _config_content_hash(cfg)
+    """
     existing = VCTImportLog.query.filter_by(issuer_url=issuer_url, config_id=cid, config_hash=content_hash, status="success").first()
     if existing:
         return {"status": "skipped", "reason": "same_content_hash", "issuer": issuer_url, "config_id": cid}
-
+    """
+    
     log = _save_import_log(
         issuer_url=issuer_url, config_id=cid, config_vct=str(cfg.get("vct") or ""),
         config_hash=content_hash, raw_snapshot=json.dumps(cfg, ensure_ascii=False),
