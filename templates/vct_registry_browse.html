@@ -707,15 +707,15 @@
 
       switch(fkey){
         case 'identity_auth':
-          return hasAny(['identity','authentication','login','eid']) || claimHas('given_name','family_name','birth_date');
+          return hasAny(['identity','authentication','login','eid', 'PID']) || claimHas('given_name','family_name', 'first_name', 'birth_date');
         case 'age_verification':
-          return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age');
+          return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age', 'age_over_18');
         case 'qes_signature':
           return hasAny(['qes','qualified e-signature','qualified electronic signature','esignature','e-signature']);
         case 'payments_sca':
           return hasAny(['sca','strong customer authentication','payments','psd2']);
         case 'bank_onboarding':
-          return hasAny(['ekyc','kyc','aml','onboarding','banking']);
+          return hasAny(['ekyc','kyc','aml','onboarding','banking', 'bank account', 'payment']);
         case 'iban_proof':
           return hasAny(['iban','account ownership','account proof','bank account']);
         case 'tickets_boarding':
@@ -723,17 +723,17 @@
         case 'hotel_checkin':
           return hasAny(['hotel','check-in','check in','accommodation']);
         case 'mobility_vehicle':
-          return hasAny(['mobility','driving license', 'mdl', 'vehicle','rental','charging','parking']);
+          return hasAny(['mobility','driving license', 'mobile driver license', 'mdl', 'vehicle','rental','charging','parking']);
         case 'address_residence':
           return hasAny(['address','residence','residency']) || claimHas('street_address','city_address','postal_code','country_address');
         case 'education':
-          return hasAny(['diploma','student','education','university','degree','credential']);
+          return hasAny(['diploma','student','education','student card', 'university','degree','credential']);
         case 'professional_licence':
-          return hasAny(['licence','license','professional','qualification']);
+          return hasAny(['professional','certification','professional','qualification']);
         case 'eprescription':
-          return hasAny(['eprescription','prescription','health','medical']);
+          return hasAny(['eprescription','prescription','health','medical', 'health', 'health card']);
         case 'business_services':
-          return hasAny(['business','b2b','b2g','enterprise']);
+          return hasAny(['business','b2b','b2g','enterprise', 'business wallet', 'employee', 'employer']);
         case 'crossborder_egov':
           return hasAny(['cross-border','egov','public service','eidas']);
         default:
