@@ -626,7 +626,7 @@ def api_vct_upload():
     vct_url = mode.server + "vct/registry/publish/" + vct_urn
     vct_json["vct"] = vct_url
     
-    #recompute uri#integrity for display background image and logo
+    #recompute uri#integrity for display background_image and logo
     display_list = vct_json.get("display")
     for display in display_list:
         if uri := display.get("rendering", {}).get("simple", {}).get("background_image", {}).get("uri"):
@@ -642,11 +642,11 @@ def api_vct_upload():
             else:
                 logging.warning("This url is not available: %s", uri)
     
-    # Compute integrity on the FINAL bytes
+    # Compute vct#integrity on the FINAL bytes
     payload = json.dumps(vct_json, ensure_ascii=False, separators=(",", ":"))
     payload_bytes = payload.encode("utf-8")
     integrity = _sri_sha256(payload_bytes)
-    logging.info("VCT uploaded -> %s", json.dumps(vct_json, indent=2))
+    #logging.info("VCT uploaded -> %s", json.dumps(vct_json, indent=2))
             
     name = vct_json.get("name")
     description = vct_json.get("description")

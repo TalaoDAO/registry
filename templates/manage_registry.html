@@ -348,19 +348,51 @@
       tdAct.appendChild(ext);
 
       if (item.can_modify !== false) {
-        const del = document.createElement('button'); del.type='button'; del.className='secondary-btn'; del.textContent='Delete';
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'secondary-btn';
+        del.textContent = 'Delete';
+
         del.addEventListener('click', async () => {
-          if (!confirm(`Delete "${item.name}"?`)) return;
+          const name = item.name || 'this VC Type';
+          const msg = [
+            `Delete “${name}”?`,
+            '',
+            'This will permanently remove this VC Type.',
+            '',
+            'Consequences:',
+            '• The VCT URL will stop working',
+            '• It will be removed from search/catalog',
+            '• Dependent systems referencing this VCT may fail',
+            '',
+            'This action cannot be undone.',
+            ''
+          ].filter(Boolean).join('\n');
+
+          if (!window.confirm(msg)) return;
+
+          const prevText = del.textContent;
+          del.disabled = true;
+          del.textContent = 'Deleting…';
           overlayOn(true);
+
           try {
-            const r = await fetch('/vct/registry/api/delete/' + item.id, { method:'POST' });
-            const d = await r.json().catch(()=>({})); if (!r.ok) throw new Error(d.error || 'Delete failed');
+            const r = await fetch('/vct/registry/api/delete/' + encodeURIComponent(item.id), { method: 'POST' });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(d.error || 'Delete failed');
             await refreshList();
-          } catch(e){ alert(e.message); } 
-          finally { overlayOn(false); }
+          } catch (e) {
+            alert(e.message || 'Delete failed');
+          } finally {
+            overlayOn(false);
+            del.disabled = false;
+            del.textContent = prevText;
+          }
         });
+
         tdAct.appendChild(del);
       }
+
 
       tr.appendChild(tdName);
       tr.appendChild(tdDescription);
