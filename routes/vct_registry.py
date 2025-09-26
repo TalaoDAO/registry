@@ -109,6 +109,23 @@ def _sri_sha256(raw_bytes: bytes) -> str:
     digest = hashlib.sha256(raw_bytes).digest()
     return "sha256-" + base64.b64encode(digest).decode("ascii")
 
+
+def _sri_sha256_from_url(uri: str) -> str:
+    """Same integrity format as /vct/registry/api/upload.
+    data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...
+    """
+    if uri.startswith("http"):
+        data_image = _image_url_to_data_uri(uri)
+    elif uri.startswith("data:image"):
+        data_image = uri
+    else:
+        return
+    if data_image:
+        digest = hashlib.sha256(data_image.encode()).digest()
+        return "sha256-" + base64.b64encode(digest).decode("ascii")
+    else:
+        return ""
+
 def _extract_languages_supported_from_vct(vct_json: Dict[str, Any]) -> List[str]:
     """Collect languages from vct.display[*].{language|lang|locale} and normalize to two-letter lowercase codes."""
     langs: List[str] = []
@@ -609,11 +626,28 @@ def api_vct_upload():
     vct_url = mode.server + "vct/registry/publish/" + vct_urn
     vct_json["vct"] = vct_url
     
+    #recompute uri#integrity for display background image and logo
+    display_list = vct_json.get("display")
+    for display in display_list:
+        if uri := display.get("rendering", {}).get("simple", {}).get("background_image", {}).get("uri"):
+            uri_integrity = _sri_sha256_from_url(uri)
+            if uri_integrity:
+                display["rendering"]["simple"]["background_image"]["uri#integrity"] = uri_integrity
+            else:
+                logging.warning("This url is not available: %s", uri)
+        if uri := display.get("rendering", {}).get("simple", {}).get("logo", {}).get("uri"):
+            uri_integrity = _sri_sha256_from_url(uri)
+            if uri_integrity:
+                display["rendering"]["simple"]["background_image"]["uri#integrity"] = uri_integrity
+            else:
+                logging.warning("This url is not available: %s", uri)
+    
+    # Compute integrity on the FINAL bytes
     payload = json.dumps(vct_json, ensure_ascii=False, separators=(",", ":"))
     payload_bytes = payload.encode("utf-8")
-    # Compute integrity on the FINAL bytes
     integrity = _sri_sha256(payload_bytes)
-
+    logging.info("VCT uploaded -> %s", json.dumps(vct_json, indent=2))
+            
     name = vct_json.get("name")
     description = vct_json.get("description")
     langs = _extract_languages_supported_from_vct(vct_json)
