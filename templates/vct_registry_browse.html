@@ -641,7 +641,10 @@
       {key:"professional_licence", label:"Professional qualifications & licences"},
       {key:"eprescription", label:"ePrescription / health"},
       {key:"business_services", label:"Business services access"},
-      {key:"crossborder_egov", label:"Cross-border public service access"}
+      {key:"crossborder_egov", label:"Cross-border public service access"},
+      {key:"human_resources", label:"Human Resources"},
+      {key:"business_wallet", label:"Business Wallet"}
+
     ];
     const filterGrid = document.getElementById('filter-grid');
     const filtersNote = document.getElementById('filters-note');
@@ -707,7 +710,7 @@
 
       switch(fkey){
         case 'identity_auth':
-          return hasAny(['identity','authentication','login','eid', 'PID']) || claimHas('given_name','family_name', 'first_name', 'birth_date');
+          return hasAny(['identity','authentication','login','eid', 'pid']) || claimHas('given_name','family_name', 'first_name', 'birth_date');
         case 'age_verification':
           return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age', 'age_over_18', 'over_18', 'over18');
         case 'qes_signature':
@@ -733,9 +736,13 @@
         case 'eprescription':
           return hasAny(['eprescription','prescription','health','medical', 'health', 'health card']);
         case 'business_services':
-          return hasAny(['business','b2b','b2g','enterprise', 'business wallet', 'employee', 'employer']);
+          return hasAny(['business','b2b','b2g','enterprise', 'business wallet', 'badge', 'company card']);
+        case 'human_resources':
+          return hasAny(['employee', 'employer']);
         case 'crossborder_egov':
           return hasAny(['cross-border','egov','public service','eidas']);
+        case 'business_wallet':
+          return hasAny(['business wallet','EUDIB', 'company wallet', 'lpid', 'company representative', 'company officer', 'e_invoicing', 'dpp', 'supply chain']);
         default:
           return true;
       }
