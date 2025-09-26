@@ -14,8 +14,7 @@ def init_app(app):
     return
 
 
-@login_required
+#@login_required
 def menu():
-    print(current_user.subscription)
     return render_template("menu.html", user=current_user)
 

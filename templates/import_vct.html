@@ -91,6 +91,10 @@
       .modal header { background:#141618; border-color:#2a2a2a; }
       .modal footer { border-color:#2a2a2a; }
     }
+  
+    .lang-list { display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:.5rem .75rem; margin-top:.25rem; }
+    .check { display:inline-flex; align-items:center; gap:.5rem; font-size:.95rem; color:#374151; }
+    
   </style>
 </head>
 
@@ -110,7 +114,7 @@
   </header>
 
   <main class="section">
-    <h1 style="text-align:center; margin:0 0 .5rem 0;">Import a VC Type from a file</h1>
+    <h1 style="text-align:center; margin:0 0 .5rem 0;">Localize a VC Type</h1>
     <p class="note" style="text-align:center; margin:0 0 1.25rem 0;">
       Drag & drop or choose a <code>.json</code> VC Type Metadata file. You can edit it below before saving or uploading to the public registry.
     </p>
@@ -119,7 +123,7 @@
       <header class="card-header">
         <div class="app-mark" aria-hidden="true">I</div>
         <div>
-          <h2 class="title" id="upload-title">Add a VC Type to the Registry</h2>
+          <h2 class="title" id="upload-title">Localize and add a VC Type to the Registry</h2>
           <p class="subtitle">Load → Edit → Validate → Upload</p>
         </div>
       </header>
@@ -143,6 +147,34 @@
           </div>
           <div class="note" id="upload-status" style="min-height:1.2em;"></div>
         </div>
+
+
+        <!-- Languages (same style as create_from_scratch) -->
+        <div class="row" id="lang-section" style="display:none;">
+          <label>Languages (add translations before editing)</label>
+          <div class="lang-list" id="lang-list" role="group" aria-label="Languages">
+            {% set langs = [
+              ("bg","Български"), ("cs","Čeština"), ("da","Dansk"), ("de","Deutsch"), ("et","Eesti"),
+              ("el","Ελληνικά"), ("en","English"), ("es","Español"), ("fr","Français"), ("ga","Gaeilge"),
+              ("hr","Hrvatski"), ("it","Italiano"), ("lv","Latviešu"), ("lt","Lietuvių"), ("hu","Magyar"),
+              ("mt","Malti"), ("nl","Nederlands"), ("pl","Polski"), ("pt","Português"), ("ro","Română"),
+              ("sk","Slovenčina"), ("sl","Slovenščina"), ("fi","Suomi"), ("sv","Svenska"), ("ja","日本語"), ("hi","हिन्दी")
+            ] %}
+            {% for code, label in langs %}
+              <label class="check">
+                <input type="checkbox" name="languages_import" value="{{code}}" />
+                {{label}}
+              </label>
+            {% endfor %}
+          </div>
+          <div class="actions" style="margin-top:.25rem;">
+            <button type="button" class="ghost-btn" id="select-all-imp">Select all</button>
+            <button type="button" class="ghost-btn" id="clear-all-imp">Clear all</button>
+            <button type="button" class="secondary-btn" id="translate-btn" disabled>Add translations to JSON</button>
+            <span class="note" id="lang-status"></span>
+          </div>
+        </div>
+
 
         <!-- Editor -->
         <div class="row editor-wrap" id="editor-wrap" style="display:none;">
@@ -379,6 +411,12 @@
         setEditorText(loadedJsonText);
         enableEditorTools(true);
 
+        // Prepare language picker
+        currentVctObj = parsed;
+        currentAvailableLangs = extractExistingLangs(parsed);
+        langSection.style.display = 'grid';
+        precheckLanguages();
+
         // Setup filename for download
         const vct = (String(parsed.vct || guessNameFromVct(parsed)) || 'vc_type')
           .toString().split('/').pop().split('.').pop().replace(/[^a-z0-9_-]/gi,'_');
@@ -446,7 +484,95 @@
       document.body.appendChild(a); a.click(); a.remove();
     });
 
-    // Upload to Registry — use EXACT editor content
+    
+    // ===== Language translation picker (matches create_from_scratch style) =====
+    const langSection   = document.getElementById('lang-section');
+    const langList      = document.getElementById('lang-list');
+    const translateBtn  = document.getElementById('translate-btn');
+    const langStatus    = document.getElementById('lang-status');
+    const selectAllImp  = document.getElementById('select-all-imp');
+    const clearAllImp   = document.getElementById('clear-all-imp');
+
+    let currentVctObj = null;
+    let currentAvailableLangs = new Set(); // raw tags like 'en', 'fr-FR', etc.
+
+    function baseCode(tag){ return String(tag||'').toLowerCase().split('-')[0]; }
+
+    function extractExistingLangs(obj){
+      const langs = new Set();
+      const disp = Array.isArray(obj?.display) ? obj.display : [];
+      for (const d of disp) {
+        if (!d || typeof d !== 'object') continue;
+        const raw = (d.lang || d.language || d.locale || '').toString();
+        if (raw) langs.add(raw);
+      }
+      return langs;
+    }
+
+    function precheckLanguages(){
+      const baseSet = new Set(Array.from(currentAvailableLangs).map(baseCode));
+      langList.querySelectorAll('input[name="languages_import"]').forEach(cb => {
+        const shouldCheck = baseSet.has(baseCode(cb.value));
+        cb.checked = shouldCheck;
+        const label = cb.closest('.check');
+        if (label) label.classList.toggle('active', shouldCheck);
+      });
+      updateTranslateBtnState();
+    }
+
+    function selectedTargetLangs(){
+      const baseSet = new Set(Array.from(currentAvailableLangs).map(baseCode));
+      const arr = [];
+      langList.querySelectorAll('input[name="languages_import"]').forEach(cb => {
+        if (cb.checked && !baseSet.has(baseCode(cb.value))) arr.push(cb.value);
+      });
+      return arr;
+    }
+
+    function updateTranslateBtnState(){
+      const n = selectedTargetLangs().length;
+      translateBtn.disabled = !currentVctObj || n === 0;
+      langStatus.textContent = currentVctObj ? (n ? `${n} new language(s) selected` : 'No new languages selected') : '';
+    }
+
+    langList.addEventListener('change', updateTranslateBtnState);
+    selectAllImp.addEventListener('click', () => {
+      langList.querySelectorAll('input[name="languages_import"]').forEach(cb => cb.checked = true);
+      updateTranslateBtnState();
+    });
+    clearAllImp.addEventListener('click', () => {
+      langList.querySelectorAll('input[name="languages_import"]').forEach(cb => cb.checked = false);
+      updateTranslateBtnState();
+    });
+
+    translateBtn.addEventListener('click', async () => {
+      if (!currentVctObj) { setTopStatus('Please load a VCT first.', false); return; }
+      const target_langs = selectedTargetLangs();
+      if (!target_langs.length) { setTopStatus('No new languages to add.', false); return; }
+      overlayOn(true);
+      try {
+        const resp = await fetch('/vct/translate/api', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ vct: currentVctObj, target_langs })
+        });
+        const data = await resp.json().catch(()=>({}));
+        if (!resp.ok || !data.ok) throw new Error(data.error || 'Translation failed');
+        currentVctObj = data.vct;
+        const pretty = JSON.stringify(currentVctObj, null, 2);
+        setEditorText(pretty);
+        loadedJsonText = pretty;
+        setStatus('Translations added. Review and proceed.', true);
+        currentAvailableLangs = extractExistingLangs(currentVctObj);
+        precheckLanguages();
+      } catch(e){
+        setStatus(e.message || 'Translation failed', false);
+      } finally {
+        overlayOn(false);
+      }
+    });
+
+// Upload to Registry — use EXACT editor content
     uploadBtn.addEventListener('click', async () => {
       const rawText = getEditorText().trim();
       if (!rawText){ setStatus('Nothing to upload — load a file first.', false); return; }

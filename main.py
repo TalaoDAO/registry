@@ -28,7 +28,7 @@ from db_model import (
 from routes import (
     home, register, menu, user_profile,
     create_vct, vct_registry,
-    extend_wizard
+    extend_wizard, vct_translate
 )
 
     
@@ -152,6 +152,7 @@ def create_app() -> Flask:
     create_vct.init_app(app)
     vct_registry.init_app(app)
     extend_wizard.init_app(app)
+    vct_translate.init_app(app)
         
     # ---- Error handlers ----
     @app.errorhandler(403)
