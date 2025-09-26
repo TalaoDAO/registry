@@ -218,13 +218,15 @@
         <div style="overflow:auto; border:1px solid var(--border); border-radius:8px;">
           <table>
             <thead>
-              <tr>
-                <th style="width:32%;">Card</th>
-                <th style="width:30%;">Description</th>
-                <th style="width:13%;">Languages</th>
-                <th style="width:13%;">Popularity</th>
-                <th style="width:12%;">Actions</th>
-              </tr>
+             <tr>
+              <th style="width:20%;">Display</th>
+              <th style="width:10%;">Name</th>
+              <th style="width:30%;">Description</th>
+              <th style="width:15%;">Languages</th>
+              <th style="width:10%;">Popularity</th>
+              <th style="width:15%;">Actions</th>
+            </tr>
+
             </thead>
             <tbody id="rows">
               <tr id="empty-row"><td colspan="5"><div class="hint">No results. Try a property like <span class="chip">given_name</span> or a claim path like <span class="chip">person/birthdate</span>.</div></td></tr>
@@ -395,10 +397,10 @@
       }
 
       // VCT Name (bottom)
-      const name = document.createElement('div');
-      name.className = 'vct-name';
-      name.style.color = textColor;
-      name.textContent = item.name || '(unnamed)';
+      //const name = document.createElement('div');
+      //name.className = 'vct-name';
+      //name.style.color = textColor;
+      //name.textContent = item.name || '(unnamed)';
 
       // Logo (top-left): image → alt text
       if (logo){
@@ -420,7 +422,7 @@
         cardDiv.appendChild(logoWrap);
       }
 
-      cardDiv.appendChild(name);
+      //cardDiv.appendChild(name);
 
       // Make whole card clickable
       const link = document.createElement('a');
@@ -453,6 +455,10 @@
         // Card (clickable)
         const tdCard = document.createElement('td');
         tdCard.appendChild(buildVCTCard(item));
+
+        // Name
+        const tdName = document.createElement('td');
+        tdName.textContent = item.name || '(unnamed)';
 
         // Description
         const tdDescription = document.createElement('td');
@@ -520,6 +526,7 @@
         if (!item.integrity) copyIntBtn.disabled = true;
 
         tr.appendChild(tdCard);
+        tr.appendChild(tdName);
         tr.appendChild(tdDescription);
         tr.appendChild(tdLangs);
         tr.appendChild(tdPop);
