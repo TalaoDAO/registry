@@ -709,7 +709,7 @@
         case 'identity_auth':
           return hasAny(['identity','authentication','login','eid', 'PID']) || claimHas('given_name','family_name', 'first_name', 'birth_date');
         case 'age_verification':
-          return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age', 'age_over_18');
+          return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age', 'age_over_18', 'over_18', 'over18');
         case 'qes_signature':
           return hasAny(['qes','qualified e-signature','qualified electronic signature','esignature','e-signature']);
         case 'payments_sca':
