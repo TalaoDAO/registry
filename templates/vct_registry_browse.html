@@ -167,6 +167,22 @@
       font-size: .9rem;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
+  
+    /* Popular filter pills */
+    .pill-grid { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.25rem; }
+    .pill {
+      display:inline-flex; align-items:center; gap:.4rem;
+      border:1px solid var(--border); border-radius:999px; padding:.4rem .65rem;
+      background:#fff; cursor:pointer; user-select:none;
+      font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; font-size:.9rem;
+    }
+    .pill input { appearance:none; width:14px; height:14px; border:1px solid #94a3b8; border-radius:3px; display:inline-block; }
+    .pill input:checked { background:var(--blue); border-color:var(--blue); }
+    .pill.active { border-color:#93c5fd; background:#eff6ff; }
+    @media (prefers-color-scheme: dark) {
+      .pill { background:#0f172a; }
+    }
+    
   </style>
 </head>
 <body>
@@ -223,6 +239,13 @@
               <label hidden title="Only entries with a JSON Schema"><input hidden id="has_schema" type="checkbox" /> Has schema</label>
             </div>
           </div>
+        </div>
+
+        <!-- Popular filters (single-select) -->
+        <div class="row" id="popular-filters">
+          <label>Popular filters</label>
+          <div class="pill-grid" id="filter-grid" role="group" aria-label="Popular filters"></div>
+          <div class="note" id="filters-note" style="min-height:1.2em;"></div>
         </div>
 
         <div>
@@ -602,9 +625,128 @@
       });
     }
 
+    // --- Popular filters (EUDI use-cases) ---
+    const POPULAR_FILTERS = [
+      {key:"identity_auth", label:"Identity & authentication"},
+      {key:"age_verification", label:"Age verification"},
+      {key:"qes_signature", label:"Qualified eSignature (QES)"},
+      {key:"payments_sca", label:"Payments: SCA"},
+      {key:"bank_onboarding", label:"Bank onboarding (eKYC)"},
+      {key:"iban_proof", label:"IBAN / account proof"},
+      {key:"tickets_boarding", label:"Tickets & boarding"},
+      {key:"hotel_checkin", label:"Hotel check-in"},
+      {key:"mobility_vehicle", label:"Mobility & vehicle access"},
+      {key:"address_residence", label:"Address / residence proof"},
+      {key:"education", label:"Diplomas & student ID"},
+      {key:"professional_licence", label:"Professional qualifications & licences"},
+      {key:"eprescription", label:"ePrescription / health"},
+      {key:"business_services", label:"Business services access"},
+      {key:"crossborder_egov", label:"Cross-border public service access"}
+    ];
+    const filterGrid = document.getElementById('filter-grid');
+    const filtersNote = document.getElementById('filters-note');
+    let selectedFilter = null; // only one allowed
+
+    function renderPopularFilters(){
+      if (!filterGrid) return;
+      filterGrid.innerHTML = '';
+      POPULAR_FILTERS.forEach((f, idx) => {
+        const id = `pf-${idx}`;
+        const label = document.createElement('label');
+        label.className = 'pill';
+        label.innerHTML = `<input type="checkbox" id="${id}" data-key="${f.key}"><span>${f.label}</span>`;
+        filterGrid.appendChild(label);
+      });
+      filterGrid.addEventListener('change', (e) => {
+        const target = e.target.closest('input[type=checkbox]');
+        if (!target) return;
+        const key = target.getAttribute('data-key');
+        if (target.checked) {
+          // uncheck all others (single-select behavior using checkboxes)
+          filterGrid.querySelectorAll('input[type=checkbox]').forEach(cb => {
+            if (cb !== target) cb.checked = false;
+          });
+          selectedFilter = key;
+        } else {
+          selectedFilter = null;
+        }
+        // update active class
+        filterGrid.querySelectorAll('.pill').forEach(p => {
+          const cb = p.querySelector('input[type=checkbox]');
+          p.classList.toggle('active', cb && cb.checked);
+        });
+        updateFiltersNote();
+        refreshList();
+      });
+      // initialize from URL (if kw present)
+      const u = new URL(location.href);
+      const kw = u.searchParams.get('kw') || '';
+      if (kw) {
+        const cb = filterGrid.querySelector(`input[data-key="${kw}"]`);
+        if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', {bubbles:true})); }
+      } else {
+        updateFiltersNote();
+      }
+    }
+
+    function updateFiltersNote(){
+      filtersNote.textContent = selectedFilter ? `Filter: ${POPULAR_FILTERS.find(f=>f.key===selectedFilter)?.label || selectedFilter}` : 'Tip: choose one filter or leave empty.';
+    }
+
+    function itemMatchesFilter(item, fkey){
+      if (!fkey) return true;
+      const text = ((item.name||'') + ' ' + (item.description||'') + ' ' + (item.search_text||'') + ' ' + (item.keywords||'')).toLowerCase();
+      const claimHeads = new Set(
+        Array.isArray(item.claims) ? item.claims.map(x => String(x).split(/[./]/)[0]) :
+        Array.isArray(item.claim_paths) ? item.claim_paths.map(x => String(x).split(/[./]/)[0]) :
+        String(item.claims_list||'').split(/[, \n\r\t]+/).map(x => String(x).split(/[./]/)[0])
+      );
+      const has = (kw) => text.includes(kw);
+      const hasAny = (arr) => arr.some(has);
+      const claimHas = (...heads) => heads.some(h => claimHeads.has(h));
+
+      switch(fkey){
+        case 'identity_auth':
+          return hasAny(['identity','authentication','login','eid']) || claimHas('given_name','family_name','birth_date');
+        case 'age_verification':
+          return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age');
+        case 'qes_signature':
+          return hasAny(['qes','qualified e-signature','qualified electronic signature','esignature','e-signature']);
+        case 'payments_sca':
+          return hasAny(['sca','strong customer authentication','payments','psd2']);
+        case 'bank_onboarding':
+          return hasAny(['ekyc','kyc','aml','onboarding','banking']);
+        case 'iban_proof':
+          return hasAny(['iban','account ownership','account proof','bank account']);
+        case 'tickets_boarding':
+          return hasAny(['ticket','boarding','boarding pass','transport','flight','rail','bus']);
+        case 'hotel_checkin':
+          return hasAny(['hotel','check-in','check in','accommodation']);
+        case 'mobility_vehicle':
+          return hasAny(['mobility','driving license', 'mdl', 'vehicle','rental','charging','parking']);
+        case 'address_residence':
+          return hasAny(['address','residence','residency']) || claimHas('street_address','city_address','postal_code','country_address');
+        case 'education':
+          return hasAny(['diploma','student','education','university','degree','credential']);
+        case 'professional_licence':
+          return hasAny(['licence','license','professional','qualification']);
+        case 'eprescription':
+          return hasAny(['eprescription','prescription','health','medical']);
+        case 'business_services':
+          return hasAny(['business','b2b','b2g','enterprise']);
+        case 'crossborder_egov':
+          return hasAny(['cross-border','egov','public service','eidas']);
+        default:
+          return true;
+      }
+    }
+
+
     // ---- Fetch helpers
     function buildParams(){
+      const kw = selectedFilter;
       const p = new URLSearchParams();
+      if (kw) p.set('kw', kw);
       p.set('scope', scopeSel.value);
       const q = searchInput.value.trim(); if (q) p.set('q', q);
 
@@ -632,7 +774,8 @@
       const params = buildParams();
       const resp = await fetch('/vct/registry/api/list?' + params.toString());
       if (!resp.ok) return;
-      const data = await resp.json();
+      let data = await resp.json();
+      if (selectedFilter) { data = data.filter(it => itemMatchesFilter(it, selectedFilter)); }
       renderRows(data);
     }
 
@@ -645,7 +788,8 @@
         body: JSON.stringify(body)
       });
       if (!resp.ok){ return refreshList(); }
-      const data = await resp.json();
+      let data = await resp.json();
+      if (selectedFilter) { data = data.filter(it => itemMatchesFilter(it, selectedFilter)); }
       renderRows(data);
     }
 
@@ -688,6 +832,7 @@
       (u.searchParams.get('scope')||'') && (scopeSel.value = u.searchParams.get('scope'));
     })();
 
+    renderPopularFilters();
     // Initial load
     refreshList();
   </script>
