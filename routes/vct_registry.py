@@ -513,6 +513,7 @@ def api_vct_list():
             doc = json.loads(r.vct_data) if isinstance(r.vct_data, str) else (r.vct_data or {})
             schema_props_count = len((doc.get("claims") or {}))
         except Exception:
+            doc = {}
             schema_props_count = 0
             
         is_owner = (is_owner_id is not None and r.user_id == is_owner_id)
@@ -536,14 +537,14 @@ def api_vct_list():
             logo_alt_text = ""
             background_image_alt_text = ""
         
-        """
-        if background_image_uri.startswith("http"):
-            background_image_uri = _image_url_to_data_uri(background_image_uri)
-        if logo_uri.startswith("http"):
-            logo_uri = _image_url_to_data_uri(logo_uri)
-        """
+        claim_paths = []
+        for claim in doc.get("claims", []):
+            path = claim.get("path", [])
+            try:
+                claim_paths.append(".".join(path))
+            except Exception:
+                pass
             
-        print("name = ", r.name, text_color, background_color, background_image_uri, logo_uri)        
         
         base = {
             "id": r.id,
@@ -564,7 +565,10 @@ def api_vct_list():
             "logo_uri": logo_uri,
             "background_image_uri": background_image_uri,
             "logo_alt_text": logo_alt_text,
-            "background_image_alt_text": background_image_alt_text
+            "background_image_alt_text": background_image_alt_text,
+            "claim_paths": claim_paths,
+            "claims": claim_paths,
+            "claims_count": len(claim_paths)
             
         }
         base.update(_rating_payload_full(r, user_id=(current_user.id if is_auth else None)))
@@ -968,6 +972,7 @@ def api_vct_ai_search():
             doc = json.loads(r.vct_data) if isinstance(r.vct_data, str) else (r.vct_data or {})
             schema_props_count = len(((doc.get("schema") or {}).get("properties") or {}))
         except Exception:
+            doc = {}
             schema_props_count = 0
             
         is_owner = (user_id is not None and r.user_id == user_id)

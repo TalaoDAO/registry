@@ -63,6 +63,20 @@
     .hint { color:#6b7280; font-size:.9rem; padding:1rem; }
 
     .filters { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+    
+    /* Scrollable claim list that won't exceed the card's height */
+    .claims-scroll {
+      overflow: auto;
+      padding-right: .5rem;            /* keep scrollbar off text */
+    }
+    .claim-item {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: .9rem;
+      line-height: 1.3;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
 
     /* ---- VCT Card column ---- */
     .vct-card {
@@ -221,15 +235,16 @@
              <tr>
               <th style="width:20%;">Display</th>
               <th style="width:10%;">Name</th>
-              <th style="width:30%;">Description</th>
-              <th style="width:15%;">Languages</th>
-              <th style="width:10%;">Popularity</th>
+              <th style="width:25%;">Description</th>
+              <th style="width:15%;">Claims</th>
+              <th style="width:10%;">Languages</th>
+              <th style="width:5%;">Popularity</th>
               <th style="width:15%;">Actions</th>
             </tr>
 
             </thead>
             <tbody id="rows">
-              <tr id="empty-row"><td colspan="5"><div class="hint">No results. Try a property like <span class="chip">given_name</span> or a claim path like <span class="chip">person/birthdate</span>.</div></td></tr>
+              <tr id="empty-row"><td colspan="7"><div class="hint">No results. Try a property like <span class="chip">given_name</span> or a claim path like <span class="chip">person/birthdate</span>.</div></td></tr>
             </tbody>
           </table>
         </div>
@@ -266,6 +281,18 @@
     const minRatingInput = $('min_rating');
     const minCallsInput = $('min_calls');
     const hasSchemaInput = $('has_schema');
+
+    // Track pairs of (cardEl, claimsWrap) to recompute heights on resize
+    const _resizePairs = [];
+    window.addEventListener('resize', () => {
+      for (const { cardEl, claimsWrap } of _resizePairs) {
+        if (cardEl && claimsWrap) {
+          const h = cardEl.clientHeight || 0;
+          if (h) claimsWrap.style.maxHeight = h + 'px';
+        }
+      }
+    });
+
 
     function overlayOn(on){ overlay.style.display = on ? 'flex' : 'none'; }
 
@@ -446,6 +473,7 @@
     // ---- Row rendering
     function renderRows(data){
       rows.innerHTML = '';
+      if (Array.isArray(_resizePairs)) { _resizePairs.length = 0; }
       resultCount.textContent = `${data.length} result${data.length===1?'':'s'}`;
       if (!data.length) { rows.appendChild(emptyRow); return; }
 
@@ -462,7 +490,34 @@
 
         // Description
         const tdDescription = document.createElement('td');
-        tdDescription.textContent = item.description || '(unnamed)';
+        tdDescription.textContent = item.description || '(Unnamed)';
+
+        // Claims
+        const tdClaims = document.createElement('td');
+        const claimsWrap = document.createElement('div');
+        claimsWrap.className = 'claims-scroll';
+        // Prefer the array "claims"; fallback to parsing the legacy string "claims_list"
+        const claimsArr = Array.isArray(item.claims) ? item.claims
+          : Array.isArray(item.claim_paths) ? item.claim_paths
+          : String(item.claim_paths || item.claims_list || '')
+              .split(/[,\s]+/)
+              .filter(Boolean);
+
+        if (claimsArr.length === 0) {
+          claimsWrap.innerHTML = '<span class="note">(No claims)</span>';
+        } else {
+          // Render as a vertical list
+          const frag = document.createDocumentFragment();
+          claimsArr.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'claim-item';
+            div.title = p;           // full path on hover
+            div.textContent = p;     // e.g., "person.birthdate"
+            frag.appendChild(div);
+          });
+          claimsWrap.appendChild(frag);
+        }
+        tdClaims.appendChild(claimsWrap);
 
         // Languages
         const tdLangs = document.createElement('td');
@@ -528,10 +583,22 @@
         tr.appendChild(tdCard);
         tr.appendChild(tdName);
         tr.appendChild(tdDescription);
+        tr.appendChild(tdClaims);
         tr.appendChild(tdLangs);
         tr.appendChild(tdPop);
         tr.appendChild(tdActions);
         rows.appendChild(tr);
+
+        // Match Claims max-height to the card height for THIS row
+        const cardEl = tdCard.querySelector('.vct-card');
+        if (cardEl) {
+          const h = cardEl.clientHeight || 0;
+          if (h) claimsWrap.style.maxHeight = h + 'px';
+          if (Array.isArray(_resizePairs)) {
+            _resizePairs.push({ cardEl, claimsWrap });
+          }
+        }
+
       });
     }
 
