@@ -124,3 +124,28 @@ If you choose Manage or Browse, you won’t generate a new file, but you’ll in
 ---
 
 **That’s it!** You now know what each menu option does and how to pick the right flow.
+
+
+---
+
+## Using the Open Registry: two integration patterns
+
+There are **at least two ways** to consume VC Type metadata (`vct`) from this Open Registry:
+
+### 1) **Use `vct` as a URL (direct dereferencing)**
+- Put the **URL** directly as the `vct` in your SD‑JWT VC.  
+  Example: `https://issuer.example/vct/person-id/2025-09-28.json`
+- **Issuer**, **Verifier**, and **Wallet** can **fetch** the URL to retrieve the canonical VC Type Metadata JSON.  
+- Pros: simple, decentralized, cache/CDN‑friendly, works without any central resolver.
+
+**When to choose:** you control a domain, prefer open‑web linking, or want fast iteration with explicit versions (e.g., `.../v1/`, dated paths, or content hashes).
+
+### 2) **Use `vct` as a URN (centralized resolution), with URL in the registry**
+- Some ecosystems (e.g., **EUDI Wallet**) prefer or require a **URN** as the VC Type identifier.  
+  Example: `urn:example:vct:person-id`
+- In that case, **publish your VCT’s canonical URL inside the centralized registry** entry.  
+- Relying parties resolve the **URN → registry entry → URL**, then fetch the metadata from that URL.
+
+**When to choose:** your governance requires URNs or you operate in a curated, centrally resolved namespace—while still leveraging a URL for actual metadata hosting.
+
+> Tip: The Open Registry supports **both**. You can **list a URN and a URL in the same entry** so ecosystems that dereference URLs **and** those that resolve URNs are both happy.
