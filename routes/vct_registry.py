@@ -289,6 +289,7 @@ def init_app(app):
 
     # Public resolver (stable URL)
     app.add_url_rule("/vct/registry/publish/<vct_urn>", view_func=vct_publish, methods=["GET"])
+    app.add_url_rule("/.well-known/vct/<vct_urn>", view_func=vct_publish, methods=["GET"])
 
     # APIs (JSON)
     app.add_url_rule("/vct/registry/api/list", view_func=api_vct_list, methods=["GET"])                  # list & filtered search
