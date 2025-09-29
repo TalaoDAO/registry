@@ -79,7 +79,7 @@ class VCTRegistry(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     deleted_at = db.Column(db.DateTime(timezone=True))
-    extra = db.Column(db.Text)
+    extra = db.Column(db.Text) # schema
     __table_args__ = (
         Index('ix_vctregistry_owner_created', 'user_id', 'created_at'),
         Index('ix_vctregistry_integrity_v2', 'integrity_v2'),

@@ -15,6 +15,8 @@ from flask_login import login_required, current_user
 
 from db_model import db, VCTRegistry, VCTRating
 
+from schema_from_vct_claims import generate_sd_jwt_vc_schema_from_claims
+
 # ----------------------------------------------------------------------------
 # Logging
 # ----------------------------------------------------------------------------
@@ -297,7 +299,7 @@ def init_app(app):
     app.add_url_rule("/vct/registry/api/upload", view_func=api_vct_upload, methods=["POST"])             # upload file
     app.add_url_rule("/vct/registry/api/delete/<int:row_id>", view_func=api_vct_delete, methods=["POST"])# delete
     app.add_url_rule("/vct/registry/api/visibility/<int:row_id>", view_func=api_vct_visibility, methods=["POST"])  # publish/unpublish
-    app.add_url_rule("/vct/registry/api/download/<int:row_id>", view_func=api_vct_download, methods=["GET"])       # full doc
+    app.add_url_rule("/vct/registry/api/download/<int:row_id>", view_func=api_vct_download, methods=["GET"])  # full doc
     app.add_url_rule("/vct/registry/api/download_schema/<int:row_id>", view_func=api_vct_download_schema, methods=["GET"])  # schema-only
     app.add_url_rule("/vct/registry/api/rate/<int:row_id>", view_func=api_vct_rate, methods=["POST"])    # stars
 
@@ -740,34 +742,49 @@ def api_vct_download(row_id: int):
     _bump_calls(row)
 
     resp = Response(payload, mimetype="application/json")
-    resp.headers["Content-Disposition"] = f"attachment; filename={row.name or 'vct'}.json"
+    resp.headers["Content-Disposition"] = f"attachment; filename={row.name or 'vct'}.vct.json"
     resp.headers["X-VCT"] = row.vct or ""
     resp.headers["X-Integrity"] = row.integrity
     return resp
 
+
 def api_vct_download_schema(row_id: int):
+    """
+    download schema from row.extra
+    """
     row = VCTRegistry.query.filter_by(id=row_id).first()
     if not row:
         return jsonify({"error": "Not found"}), 404
     if not row.is_public and (getattr(current_user, "id", None) != row.user_id):
         return jsonify({"error": "Forbidden"}), 403
-
+    
     try:
-        doc = json.loads(row.vct_data) if isinstance(row.vct_data, str) else row.vct_data
-    except Exception as e:
-        return jsonify({"error": f"Corrupt JSON: {e}"}), 500
-
-    schema = (doc or {}).get("schema") or {}
+        vct_data = row.vct_data if isinstance(row.vct_data, str) else row.vct_data.decode("utf-8")
+    except Exception:
+        vct_data = row.vct_data      
+    vct_data = json.loads(vct_data)
+    
+    if row.extra:
+        try:
+            schema = json.loads(row.extra)
+        except Exception as e:
+            return jsonify({"error": f"Corrupt JSON: {e}"}), 500
+        logging.info("schema is present in the DB")
+    elif vct_data.get('schema'):
+        schema = vct_data.get('schema')
+        logging.info("schema is present in VC Type Metadata")
+    else:
+        schema = generate_sd_jwt_vc_schema_from_claims(vct_data)
+        logging.info("schema is generated from VCT claims")
+        
     if isinstance(schema, dict):
         schema = dict(schema)
     payload = json.dumps(schema, ensure_ascii=False, indent=2)
 
     _bump_calls(row)
-
+    
     resp = Response(payload, mimetype="application/json")
     resp.headers["Content-Disposition"] = f"attachment; filename={row.name or 'schema'}.schema.json"
-    resp.headers["X-VCT"] = row.vct or ""
-    resp.headers["X-Integrity"] = row.integrity
     return resp
 
 @login_required

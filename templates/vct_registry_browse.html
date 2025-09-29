@@ -589,9 +589,17 @@
         const dl = document.createElement('a');
         dl.href = `/vct/registry/api/download/${item.id}`;
         dl.className = 'ghost-btn';
-        dl.textContent = 'Download VCT';
+        dl.textContent = 'VCT JSON';
         dl.setAttribute('title', 'Download VCT JSON');
         tdActions.appendChild(dl);
+
+        // download schema
+        const schema = document.createElement('a');
+        schema.href = `/vct/registry/api/download_schema/${item.id}`;
+        schema.className = 'ghost-btn';
+        schema.textContent = 'SD-JWT VC JSON schema';
+        schema.setAttribute('title', 'Download SD-JWT VC JSON schema');
+        tdActions.appendChild(schema);
 
         // Extend button
         const ext = document.createElement('a');
