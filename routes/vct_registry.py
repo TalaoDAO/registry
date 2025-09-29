@@ -620,7 +620,7 @@ def api_vct_upload():
     #vct_urn_orig = (vct_json.get("vct") or "").strip()
     #if not vct_urn_orig:
     #    return jsonify({"error": "Missing 'vct' in the JSON document"}), 400
-    vct_urn = secrets.token_hex(32)
+    vct_urn = secrets.token_urlsafe(32)
 
     # build vct_url for publishing and update vct in the registry (stable public URL)
     mode = current_app.config["MODE"]

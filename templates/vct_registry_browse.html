@@ -560,18 +560,13 @@
         // Actions
         const tdActions = document.createElement('td');
 
-        const dl = document.createElement('a');
-        dl.href = `/vct/registry/api/download/${item.id}`;
-        dl.className = 'secondary-btn';
-        dl.textContent = 'Download JSON';
-        dl.setAttribute('title', 'Download VCT JSON');
-        tdActions.appendChild(dl);
+        
 
         // Copy VCT URL
         const copyVctBtn = document.createElement('button');
         copyVctBtn.type = 'button';
         copyVctBtn.className = 'ghost-btn';
-        copyVctBtn.textContent = 'Copy VCT URL';
+        copyVctBtn.textContent = 'Copy vct URL';
         copyVctBtn.title = item.vct || 'No VCT URL available';
         copyVctBtn.addEventListener('click', async () => {
           const ok = await copyText(item.vct);
@@ -583,7 +578,7 @@
         const copyIntBtn = document.createElement('button');
         copyIntBtn.type = 'button';
         copyIntBtn.className = 'ghost-btn';
-        copyIntBtn.textContent = 'Copy integrity';
+        copyIntBtn.textContent = 'Copy vct#integrity';
         copyIntBtn.title = item.integrity || 'Integrity not available';
         copyIntBtn.addEventListener('click', async () => {
           const ok = await copyText(item.integrity);
@@ -591,9 +586,16 @@
         });
         tdActions.appendChild(copyIntBtn);
 
+        const dl = document.createElement('a');
+        dl.href = `/vct/registry/api/download/${item.id}`;
+        dl.className = 'ghost-btn';
+        dl.textContent = 'Download VCT';
+        dl.setAttribute('title', 'Download VCT JSON');
+        tdActions.appendChild(dl);
+
         // Extend button
         const ext = document.createElement('a');
-        ext.className = 'secondary-btn';
+        ext.className = 'ghost-btn';
         ext.textContent = 'Extend this VCT';
         ext.href = `/vct/registry/extend?row_id=${encodeURIComponent(item.id)}&integrity=${encodeURIComponent(item.integrity||'')}`;
         ext.title = 'Create a child VCT that extends this one';
