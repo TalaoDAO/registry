@@ -23,7 +23,7 @@
     .note { color:var(--subtext); font-size:.9rem; }
 
     .primary-btn, .secondary-btn, .ghost-btn { appearance:none; border:none; cursor:pointer; text-decoration:none;
-      padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
+      padding:.6rem .9rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
       font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
     .primary-btn { background:var(--blue); color:#fff; }
     .primary-btn:hover { background:var(--blue-dark); }
@@ -33,10 +33,7 @@
     input[type="text"], select { padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px; min-width:220px; }
     input[type="number"] { padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px; width:110px; }
 
-    table {
-      width:100%;
-      border-collapse: collapse;
-    }
+    table { width:100%; border-collapse: collapse; }
     th, td { padding:.75rem 1rem; border-top:1px solid var(--border); text-align:left; font-size:.95rem; vertical-align: middle; }
     th { background:#f3f4f6; position:sticky; top:0; z-index:1; }
     tbody tr:hover { background:#fafafa; }
@@ -56,7 +53,6 @@
                display:none; align-items:center; justify-content:center; z-index:50; }
     .spinner { width:46px; height:46px; border-radius:999px; border:4px solid #d1d5db; border-top-color:var(--blue);
                animation: spin 1s linear infinite; }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .count { color:var(--subtext); font-size:.9rem; }
@@ -66,26 +62,18 @@
     .hint { color:#6b7280; font-size:.9rem; padding:1rem; }
 
     .filters { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
-    
-    /* Scrollable claim list that won't exceed the card's height */
-    .claims-scroll {
-      overflow: auto;
-      padding-right: .5rem;            /* keep scrollbar off text */
-    }
-    .claim-item {
-      font-family: ui-monospace, Menlo, Consolas, monospace;
-      font-size: .9rem;
-      line-height: 1.3;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
+
+    /* Claims column: keep compact */
+    td:nth-child(4), th:nth-child(4) { width: 160px; max-width: 160px; }
+    .claims-scroll { overflow:auto; padding-right:.5rem; }
+    .claim-item { font-family: ui-monospace, Menlo, Consolas, monospace; font-size:.9rem; line-height:1.3;
+                  white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
 
     /* ---- VCT Card column ---- */
     .vct-card {
-      aspect-ratio: 85.6 / 53.98; /* ~1.586, ID-1 bank card ratio */
+      aspect-ratio: 85.6 / 53.98;
       width: 100%;
-      min-width: 160px;     /* optional floor so it doesn’t shrink too far */
+      min-width: 160px;
       max-width: 300px;
       position: relative;
       border-radius: 12px;
@@ -97,10 +85,11 @@
       background-size: cover;
       background-position: center;
       border: 1px solid #e5e7eb;
-      text-decoration: none; /* ensure no underline when inside <a> */
+      text-decoration: none;
       transition: transform .12s ease, box-shadow .12s ease;
       cursor: pointer;
     }
+
 
     /* On very small screens, let cards take full width */
     @media (max-width: 600px) {
@@ -117,79 +106,18 @@
         width: 100%;
       }
     }
-
-    .vct-card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 28px rgba(0,0,0,.12);
-    }
-    .vct-card .vct-name {
-      font-weight: 700;
-      line-height: 1.2;
-      font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-      font-size: .95rem;
-      z-index: 1;
-      text-shadow: 0 1px 2px rgba(0,0,0,.2);
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    
+    .vct-card:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,.12); }
     .vct-card .logo-wrap {
-      position: absolute;
-      top: .55rem;
-      left: .55rem; /* logo on the left */
-      min-width: 44px;
-      height: 44px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.85);
-      display: grid;
-      place-content: center;
-      padding: 4px 8px;
-      overflow: hidden;
-      border: 1px solid rgba(0,0,0,.06);
-      box-sizing: border-box;
+      position: absolute; top:.55rem; left:.8rem;
+      min-width:44px; height:44px; border-radius:10px; background:rgba(255,255,255,.85);
+      display:grid; place-content:center; padding:4px 8px; overflow:hidden; border:1px solid rgba(0,0,0,.06);
+      box-sizing:border-box;
     }
-    .vct-card .logo-wrap img {
-      max-width: 80%;
-      max-height: 80%;
-      display: block;
-      object-fit: contain;
-    }
-    .vct-card .logo-wrap span {
-      font-size: .75rem;
-      font-weight: 600;
-      color: #111827;
-      white-space: nowrap;
-    }
-    .vct-card::after {
-      /* subtle gradient to improve text readability on images */
-      content: "";
-      position: absolute;
-      inset: 0 0 0 0;
-      background: linear-gradient(to top, rgba(0,0,0,.28), rgba(0,0,0,.0) 60%);
-      pointer-events: none;
-    }
+    .vct-card .logo-wrap img { max-width:80%; max-height:80%; display:block; object-fit:contain; }
+    .vct-card::after { content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,.28), rgba(0,0,0,0) 60%); pointer-events:none; }
 
-    /* Toast for copy feedback */
-    .toast {
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      background: #111827;
-      color: #fff;
-      padding: .6rem .8rem;
-      border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0,0,0,.25);
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity .2s ease, transform .2s ease;
-      z-index: 1000;
-      font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-      font-size: .9rem;
-    }
-    .toast.show { opacity: 1; transform: translateY(0); }
-  
-    /* Popular filter pills */
+     /* Popular filter pills */
     .pill-grid { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.25rem; }
     .pill {
       display:inline-flex; align-items:center; gap:.4rem;
@@ -203,7 +131,20 @@
     @media (prefers-color-scheme: dark) {
       .pill { background:#0f172a; }
     }
-    
+
+    /* Pagination UI */
+    #pagination { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:flex-end; padding:.5rem 0; }
+    #pagination .btn { padding:.45rem .7rem; border-radius:8px; border:1px solid #c7d2fe; background:#edf2ff; color:#1f3b8a; cursor:pointer; }
+    #pagination .btn.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+    #pagination .btn[disabled] { opacity:.6; cursor:not-allowed; }
+
+    /* Mobile tweaks */
+    @media (max-width: 600px) {
+      th, td { padding: .5rem .75rem; }
+      td:nth-child(2), th:nth-child(2) { padding-left: 1rem; }
+      .vct-card { max-width: 100%; width: 100%; }
+      td:nth-child(4), th:nth-child(4) { width: 120px; max-width: 120px; }
+    }
   </style>
 </head>
 <body>
@@ -214,15 +155,17 @@
     <div class="nav-group">
       <nav>
         <a href="/menu">Tools</a>
+        <a href="/vct/registry/manage">My VC Types</a>
         <a href="/documentation/vct_registry_browse" target="_blank" rel="noopener">Explain ?</a>
       </nav>
       {% include "account.html" %}
     </div>
   </header>
+
   <section class="section">
     <div class="card">
       <div class="card-header">
-        <div class="app-mark">V</div> 
+        <div class="app-mark">V</div>
         <div style="display:flex; flex-direction:column;">
           <h2 class="title">SD-JWT VC Registry</h2>
           <p class="subtitle">Browse and search public Verified Credential Types</p>
@@ -252,45 +195,54 @@
               </select>
 
               <input id="languages" type="text" placeholder="Languages (e.g. en,fr)" title="Comma-separated list, matches languages_supported" />
-              <input hidden id="prop" type="text" placeholder="Schema property contains…" /> 
+              <input hidden id="prop" type="text" placeholder="Schema property contains…" />
               <input id="claim" type="text" placeholder="Claim path contains…" />
               <input id="min_rating" type="number" min="0" max="5" step="0.1" placeholder="Min ★" />
               <input id="min_calls" type="number" min="0" step="1" placeholder="Min calls" />
+
+              <!-- NEW: Page size -->
+              <label for="page-size">Page size</label>
+              <select id="page-size" title="Page size">
+                <option value="10">10</option>
+                <option value="15" selected>15</option>
+                <option value="25">25</option>
+              </select>
+
               <label hidden title="Only entries with a JSON Schema"><input hidden id="has_schema" type="checkbox" /> Has schema</label>
             </div>
           </div>
         </div>
 
-        <!-- Popular filters (single-select) -->
+        <!-- Popular filters -->
         <div class="row" id="popular-filters">
           <label>Popular filters</label>
           <div class="pill-grid" id="filter-grid" role="group" aria-label="Popular filters"></div>
           <div class="note" id="filters-note" style="min-height:1.2em;"></div>
         </div>
 
-        <div>
-          <span id="result-count" class="count"></span>
-        </div>
+        <div><span id="result-count" class="count"></span></div>
 
         <div style="overflow:auto; border:1px solid var(--border); border-radius:8px;">
           <table>
             <thead>
-             <tr>
+            <tr>
               <th style="width:30%;">Display</th>
-              <th style="width:10%;">Name</th>
-              <th style="width:30%;">Description</th>
-              <th style="width:5%;">Claims</th>
-              <th style="width:5%;">Languages</th>
-              <th style="width:5%;">Popularity</th>
-              <th style="width:15%;">Actions</th>
+              <th style="width:12%;">Name</th>
+              <th style="width:28%;">Description</th>
+              <th>Claims</th>
+              <th style="width:7%;">Languages</th>
+              <th style="width:7%;">Popularity</th>
+              <th style="width:16%;">Actions</th>
             </tr>
-
             </thead>
             <tbody id="rows">
               <tr id="empty-row"><td colspan="7"><div class="hint">No results. Try a property like <span class="chip">given_name</span> or a claim path like <span class="chip">person/birthdate</span>.</div></td></tr>
             </tbody>
           </table>
         </div>
+
+        <!-- NEW: pagination bar -->
+        <div id="pagination"></div>
 
         <div id="upload-status" class="note"></div>
       </div>
@@ -316,6 +268,7 @@
     const searchBtn = $('search-btn');
     const resetBtn = $('reset-btn');
     const resultCount = $('result-count');
+    const pageSizeSel = $('page-size');
 
     const sortSel = $('sort');
     const languagesInput = $('languages');
@@ -325,7 +278,12 @@
     const minCallsInput = $('min_calls');
     const hasSchemaInput = $('has_schema');
 
-    // Track pairs of (cardEl, claimsWrap) to recompute heights on resize
+    // Pagination state
+    let currentPage = 1;
+    let pageSize = parseInt(pageSizeSel.value, 10) || 15;
+    let currentData = [];
+
+    // Track pairs (cardEl, claimsWrap) to recompute heights on resize
     const _resizePairs = [];
     window.addEventListener('resize', () => {
       for (const { cardEl, claimsWrap } of _resizePairs) {
@@ -335,7 +293,6 @@
         }
       }
     });
-
 
     function overlayOn(on){ overlay.style.display = on ? 'flex' : 'none'; }
 
@@ -350,7 +307,7 @@
           t.classList.remove('show');
           setTimeout(() => t.remove(), 250);
         }, 1500);
-      }catch(e){ /* no-op */ }
+      }catch(e){}
     }
 
     async function copyText(text){
@@ -361,7 +318,7 @@
           await navigator.clipboard.writeText(s);
           return true;
         }
-      }catch(e){ /* fallthrough */ }
+      }catch(e){}
       try{
         const ta = document.createElement('textarea');
         ta.value = s;
@@ -373,12 +330,10 @@
         const ok = document.execCommand('copy');
         document.body.removeChild(ta);
         return !!ok;
-      }catch(e){
-        return false;
-      }
+      }catch(e){ return false; }
     }
 
-    // ---- Stars (READ-ONLY)
+    // Stars (read-only)
     function starEl(filled){ const el = document.createElement('span'); el.className = 'star' + (filled ? ' filled':'' ); el.textContent = '★'; return el; }
     function renderStarsCell(item){
       const wrap = document.createElement('div');
@@ -397,38 +352,33 @@
       return wrap;
     }
 
-    // ---- Helpers
+    // Helpers
     function safeUrl(u){
       try {
         const s = String(u || '').trim();
         if (!s) return '';
-        // allow data: and blob: URIs
         if (s.startsWith('data:') || s.startsWith('blob:')) return s;
         const url = new URL(s, window.location.origin);
         return url.href;
       } catch(e){ return ''; }
     }
     function getBackgroundImage(item){
-      // Handle expected key and a possible legacy typo
       return item.background_image_uri || item["background image_uri"] || '';
     }
 
     function buildVCTCard(item){
-      const textColor = String(item.text_color || '#ffffff');
       const bgColor = String(item.background_color || '');
       const bgImage = safeUrl(getBackgroundImage(item));
       const logo = safeUrl(item.logo_uri || '');
       const bgAlt = item.background_image_alt_text || '';
       const logoAlt = item.logo_alt_text || '';
 
-      // Visual card
       const cardDiv = document.createElement('div');
       cardDiv.className = 'vct-card';
 
-      // Background: image → alt text → color → initials
       if (bgImage){
         cardDiv.style.backgroundImage = `url("${bgImage}")`;
-        cardDiv.style.backgroundColor = bgColor || '#e5e7eb'; // fallback while image loads
+        cardDiv.style.backgroundColor = bgColor || '#e5e7eb';
       } else if (bgAlt){
         cardDiv.style.background = '#e5e7eb';
         const altEl = document.createElement('div');
@@ -445,14 +395,8 @@
       } else if (bgColor) {
         cardDiv.style.background = bgColor;
       } else {
-        // No background image, alt text, or color → initials
         cardDiv.style.background = '#e5e7eb';
-        const initials = (item.name || 'VC')
-          .split(/\s+/)
-          .map(w => w[0])
-          .join('')
-          .substring(0, 3)
-          .toUpperCase();
+        const initials = (item.name || 'VC').split(/\s+/).map(w => w[0]).join('').substring(0,3).toUpperCase();
         const placeholder = document.createElement('div');
         placeholder.style.position = 'absolute';
         placeholder.style.inset = 0;
@@ -466,13 +410,6 @@
         cardDiv.appendChild(placeholder);
       }
 
-      // VCT Name (bottom)
-      //const name = document.createElement('div');
-      //name.className = 'vct-name';
-      //name.style.color = textColor;
-      //name.textContent = item.name || '(unnamed)';
-
-      // Logo (top-left): image → alt text
       if (logo){
         const logoWrap = document.createElement('div');
         logoWrap.className = 'logo-wrap';
@@ -492,9 +429,6 @@
         cardDiv.appendChild(logoWrap);
       }
 
-      //cardDiv.appendChild(name);
-
-      // Make whole card clickable
       const link = document.createElement('a');
       link.href = item.vct || '#';
       link.target = '_blank';
@@ -502,7 +436,6 @@
       link.style.textDecoration = 'none';
       link.appendChild(cardDiv);
 
-      // If no VCT URL, disable click feel
       if (!item.vct){
         link.href = '#';
         link.addEventListener('click', (e) => e.preventDefault());
@@ -513,17 +446,33 @@
       return link;
     }
 
-    // ---- Row rendering
+    // ---- Row rendering (page-aware) ----
     function renderRows(data){
-      rows.innerHTML = '';
-      if (Array.isArray(_resizePairs)) { _resizePairs.length = 0; }
-      resultCount.textContent = `${data.length} result${data.length===1?'':'s'}`;
-      if (!data.length) { rows.appendChild(emptyRow); return; }
+      currentData = Array.isArray(data) ? data : [];
+      resultCount.textContent = `${currentData.length} result${currentData.length===1?'':'s'}`;
+      currentPage = 1;              // reset to first page on new data
+      renderPage(currentPage);
+    }
 
-      data.forEach(item => {
+    function renderPage(page){
+      rows.innerHTML = '';
+      _resizePairs.length = 0;
+
+      const total = currentData.length;
+      const start = (page - 1) * pageSize;
+      const end   = Math.min(start + pageSize, total);
+      const pageItems = currentData.slice(start, end);
+
+      if (!pageItems.length) {
+        rows.appendChild(emptyRow);
+        $('pagination').innerHTML = '';
+        return;
+      }
+
+      pageItems.forEach(item => {
         const tr = document.createElement('tr');
 
-        // Card (clickable)
+        // Card
         const tdCard = document.createElement('td');
         tdCard.appendChild(buildVCTCard(item));
 
@@ -539,7 +488,6 @@
         const tdClaims = document.createElement('td');
         const claimsWrap = document.createElement('div');
         claimsWrap.className = 'claims-scroll';
-        // Prefer the array "claims"; fallback to parsing the legacy string "claims_list"
         const claimsArr = Array.isArray(item.claims) ? item.claims
           : Array.isArray(item.claim_paths) ? item.claim_paths
           : String(item.claim_paths || item.claims_list || '')
@@ -549,13 +497,12 @@
         if (claimsArr.length === 0) {
           claimsWrap.innerHTML = '<span class="note">(No claims)</span>';
         } else {
-          // Render as a vertical list
           const frag = document.createDocumentFragment();
           claimsArr.forEach(p => {
             const div = document.createElement('div');
             div.className = 'claim-item';
-            div.title = p;           // full path on hover
-            div.textContent = p;     // e.g., "person.birthdate"
+            div.title = p;
+            div.textContent = p;
             frag.appendChild(div);
           });
           claimsWrap.appendChild(frag);
@@ -573,16 +520,13 @@
           tdLangs.innerHTML = '<span class="note">—</span>';
         }
 
-        // Popularity (read-only)
+        // Popularity
         const tdPop = document.createElement('td');
         tdPop.appendChild(renderStarsCell(item));
 
         // Actions
         const tdActions = document.createElement('td');
 
-        
-
-        // Copy VCT URL
         const copyVctBtn = document.createElement('button');
         copyVctBtn.type = 'button';
         copyVctBtn.className = 'ghost-btn';
@@ -594,7 +538,6 @@
         });
         tdActions.appendChild(copyVctBtn);
 
-        // Copy Integrity
         const copyIntBtn = document.createElement('button');
         copyIntBtn.type = 'button';
         copyIntBtn.className = 'ghost-btn';
@@ -613,7 +556,6 @@
         dl.setAttribute('title', 'Download VCT JSON');
         tdActions.appendChild(dl);
 
-        // download schema
         const schema = document.createElement('a');
         schema.href = `/vct/registry/api/download_schema/${item.id}`;
         schema.className = 'ghost-btn';
@@ -621,7 +563,6 @@
         schema.setAttribute('title', 'Download SD-JWT VC JSON schema');
         tdActions.appendChild(schema);
 
-        // Extend button
         const ext = document.createElement('a');
         ext.className = 'ghost-btn';
         ext.textContent = 'Extend this VCT';
@@ -629,7 +570,6 @@
         ext.title = 'Create a child VCT that extends this one';
         tdActions.appendChild(ext);
 
-        // Disable buttons when values are missing
         if (!item.vct) copyVctBtn.disabled = true;
         if (!item.integrity) copyIntBtn.disabled = true;
 
@@ -642,20 +582,64 @@
         tr.appendChild(tdActions);
         rows.appendChild(tr);
 
-        // Match Claims max-height to the card height for THIS row
         const cardEl = tdCard.querySelector('.vct-card');
         if (cardEl) {
           const h = cardEl.clientHeight || 0;
           if (h) claimsWrap.style.maxHeight = h + 'px';
-          if (Array.isArray(_resizePairs)) {
-            _resizePairs.push({ cardEl, claimsWrap });
-          }
+          _resizePairs.push({ cardEl, claimsWrap });
         }
-
       });
+
+      renderPaginationControls(page);
     }
 
-    // --- Popular filters (EUDI use-cases) ---
+    function renderPaginationControls(page){
+      const pagDiv = $('pagination');
+      pagDiv.innerHTML = '';
+      const totalPages = Math.ceil(currentData.length / pageSize);
+      if (totalPages <= 1) return;
+
+      const mkBtn = (label, pageNum, disabled=false, active=false) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.className = 'btn' + (active ? ' active' : '');
+        b.disabled = !!disabled;
+        b.addEventListener('click', () => {
+          currentPage = pageNum;
+          renderPage(currentPage);
+          window.scrollTo({ top: pagDiv.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
+        });
+        return b;
+      };
+
+      // Prev
+      pagDiv.appendChild(mkBtn('« Prev', Math.max(1, page-1), page===1, false));
+
+      // Page numbers (compact around current page)
+      const totalPagesToShow = 7;
+      let start = Math.max(1, page - 3);
+      let end   = Math.min(totalPages, start + totalPagesToShow - 1);
+      start = Math.max(1, Math.min(start, end - totalPagesToShow + 1));
+
+      if (start > 1) {
+        pagDiv.appendChild(mkBtn('1', 1, false, page===1));
+        if (start > 2) pagDiv.appendChild(document.createTextNode('…'));
+      }
+
+      for (let i = start; i <= end; i++) {
+        pagDiv.appendChild(mkBtn(String(i), i, false, i===page));
+      }
+
+      if (end < totalPages) {
+        if (end < totalPages - 1) pagDiv.appendChild(document.createTextNode('…'));
+        pagDiv.appendChild(mkBtn(String(totalPages), totalPages, false, page===totalPages));
+      }
+
+      // Next
+      pagDiv.appendChild(mkBtn('Next »', Math.min(totalPages, page+1), page===totalPages, false));
+    }
+
+    // Popular filters (unchanged)
     const POPULAR_FILTERS = [
       {key:"identity_auth", label:"Identity & authentication"},
       {key:"age_verification", label:"Age verification"},
@@ -674,11 +658,10 @@
       {key:"crossborder_egov", label:"Cross-border public service access"},
       {key:"human_resources", label:"Human Resources"},
       {key:"business_wallet", label:"Business Wallet"}
-
     ];
     const filterGrid = document.getElementById('filter-grid');
     const filtersNote = document.getElementById('filters-note');
-    let selectedFilter = null; // only one allowed
+    let selectedFilter = null;
 
     function renderPopularFilters(){
       if (!filterGrid) return;
@@ -694,16 +677,8 @@
         const target = e.target.closest('input[type=checkbox]');
         if (!target) return;
         const key = target.getAttribute('data-key');
-        if (target.checked) {
-          // uncheck all others (single-select behavior using checkboxes)
-          filterGrid.querySelectorAll('input[type=checkbox]').forEach(cb => {
-            if (cb !== target) cb.checked = false;
-          });
-          selectedFilter = key;
-        } else {
-          selectedFilter = null;
-        }
-        // update active class
+        filterGrid.querySelectorAll('input[type=checkbox]').forEach(cb => { if (cb !== target) cb.checked = false; });
+        selectedFilter = target.checked ? key : null;
         filterGrid.querySelectorAll('.pill').forEach(p => {
           const cb = p.querySelector('input[type=checkbox]');
           p.classList.toggle('active', cb && cb.checked);
@@ -711,21 +686,11 @@
         updateFiltersNote();
         refreshList();
       });
-      // initialize from URL (if kw present)
-      const u = new URL(location.href);
-      const kw = u.searchParams.get('kw') || '';
-      if (kw) {
-        const cb = filterGrid.querySelector(`input[data-key="${kw}"]`);
-        if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', {bubbles:true})); }
-      } else {
-        updateFiltersNote();
-      }
+      updateFiltersNote();
     }
-
     function updateFiltersNote(){
       filtersNote.textContent = selectedFilter ? `Filter: ${POPULAR_FILTERS.find(f=>f.key===selectedFilter)?.label || selectedFilter}` : 'Tip: choose one filter or leave empty.';
     }
-
     function itemMatchesFilter(item, fkey){
       if (!fkey) return true;
       const text = ((item.name||'') + ' ' + (item.description||'') + ' ' + (item.search_text||'') + ' ' + (item.keywords||'')).toLowerCase();
@@ -737,56 +702,35 @@
       const has = (kw) => text.includes(kw);
       const hasAny = (arr) => arr.some(has);
       const claimHas = (...heads) => heads.some(h => claimHeads.has(h));
-
       switch(fkey){
-        case 'identity_auth':
-          return hasAny(['identity','authentication','login','eid', 'pid']) || claimHas('given_name','family_name', 'first_name', 'birth_date');
-        case 'age_verification':
-          return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age', 'age_over_18', 'over_18', 'over18');
-        case 'qes_signature':
-          return hasAny(['qes','qualified e-signature','qualified electronic signature','esignature','e-signature']);
-        case 'payments_sca':
-          return hasAny(['sca','strong customer authentication','payments','psd2']);
-        case 'bank_onboarding':
-          return hasAny(['ekyc','kyc','aml','onboarding','banking', 'bank account', 'payment', 'loan', 'mortgage']);
-        case 'iban_proof':
-          return hasAny(['iban','account ownership','account proof','bank account', 'swift']);
-        case 'tickets_boarding':
-          return hasAny(['ticket','boarding','boarding pass','transport','flight','rail','bus']);
-        case 'hotel_checkin':
-          return hasAny(['hotel','check-in','check in','accommodation', 'check-out', 'check out', 'room', 'booking']);
-        case 'mobility_vehicle':
-          return hasAny(['mobility','driving license', 'mobile driver license', 'mdl', 'vehicle','rental','charging','parking']);
-        case 'address_residence':
-          return hasAny(['address','residence','residency']) || claimHas('street_address','city_address','postal_code','country_address');
-        case 'education':
-          return hasAny(['diploma','student','education','student card', 'university','degree']);
-        case 'professional_licence':
-          return hasAny(['professional','certification','professional','qualification']);
-        case 'eprescription':
-          return hasAny(['eprescription','prescription','health','medical', 'health', 'health card']);
-        case 'business_services':
-          return hasAny(['business','b2b','b2g','enterprise', 'business wallet', 'badge', 'company card']);
-        case 'human_resources':
-          return hasAny(['employee', 'employer']);
-        case 'crossborder_egov':
-          return hasAny(['cross-border','egov','public service','eidas']);
-        case 'business_wallet':
-          return hasAny(['business wallet','EUDIB', 'company wallet', 'lpid', 'company representative', 'company officer', 'e_invoicing', 'dpp', 'supply chain']);
-        default:
-          return true;
+        case 'identity_auth': return hasAny(['identity','authentication','login','eid','pid']) || claimHas('given_name','family_name','first_name','birth_date');
+        case 'age_verification': return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age','age_over_18','over_18','over18');
+        case 'qes_signature': return hasAny(['qes','qualified e-signature','qualified electronic signature','esignature','e-signature']);
+        case 'payments_sca': return hasAny(['sca','strong customer authentication','payments','psd2']);
+        case 'bank_onboarding': return hasAny(['ekyc','kyc','aml','onboarding','banking','bank account','payment','loan','mortgage']);
+        case 'iban_proof': return hasAny(['iban','account ownership','account proof','bank account','swift']);
+        case 'tickets_boarding': return hasAny(['ticket','boarding','boarding pass','transport','flight','rail','bus']);
+        case 'hotel_checkin': return hasAny(['hotel','check-in','check in','accommodation','check-out','check out','room','booking']);
+        case 'mobility_vehicle': return hasAny(['mobility','driving license','mobile driver license','mdl','vehicle','rental','charging','parking']);
+        case 'address_residence': return hasAny(['address','residence','residency']) || claimHas('street_address','city_address','postal_code','country_address');
+        case 'education': return hasAny(['diploma','student','education','student card','university','degree']);
+        case 'professional_licence': return hasAny(['professional','certification','professional','qualification']);
+        case 'eprescription': return hasAny(['eprescription','prescription','health','medical','health','health card']);
+        case 'business_services': return hasAny(['business','b2b','b2g','enterprise','business wallet','badge','company card']);
+        case 'human_resources': return hasAny(['employee','employer']);
+        case 'crossborder_egov': return hasAny(['cross-border','egov','public service','eidas']);
+        case 'business_wallet': return hasAny(['business wallet','EUDIB','company wallet','lpid','company representative','company officer','e_invoicing','dpp','supply chain']);
+        default: return true;
       }
     }
 
-
-    // ---- Fetch helpers
+    // URL params
     function buildParams(){
       const kw = selectedFilter;
       const p = new URLSearchParams();
       if (kw) p.set('kw', kw);
       p.set('scope', scopeSel.value);
       const q = searchInput.value.trim(); if (q) p.set('q', q);
-
       const sort = sortSel.value.trim(); if (sort) p.set('sort', sort);
       const langs = languagesInput.value.trim(); if (langs) p.set('languages', langs.toLowerCase());
       const prop = propInput.value.trim(); if (prop) p.set('prop', prop);
@@ -794,10 +738,8 @@
       const minr = minRatingInput.value.trim(); if (minr) p.set('min_rating', minr);
       const minc = minCallsInput.value.trim(); if (minc) p.set('min_calls', minc);
       if (hasSchemaInput.checked) p.set('has_schema','1');
-
       return p;
     }
-
     function syncURL(){
       const p = buildParams();
       const url = new URL(location.href);
@@ -805,13 +747,16 @@
       history.replaceState(null, '', url.toString());
     }
 
+    // Fetch + render
     async function refreshList(){
       syncURL();
-      if (aiToggle.checked){ return aiSearch(); }
       const params = buildParams();
-      const resp = await fetch('/vct/registry/api/list?' + params.toString());
-      if (!resp.ok) return;
-      let data = await resp.json();
+      let data = [];
+      try{
+        const resp = await fetch('/vct/registry/api/list?' + params.toString());
+        if (!resp.ok) return;
+        data = await resp.json();
+      }catch(e){ data = []; }
       if (selectedFilter) { data = data.filter(it => itemMatchesFilter(it, selectedFilter)); }
       renderRows(data);
     }
@@ -819,23 +764,25 @@
     async function aiSearch(){
       const body = Object.fromEntries(buildParams().entries());
       body.top_k = 50;
-      const resp = await fetch('/vct/registry/api/ai_search', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(body)
-      });
-      if (!resp.ok){ return refreshList(); }
-      let data = await resp.json();
-      if (selectedFilter) { data = data.filter(it => itemMatchesFilter(it, selectedFilter)); }
-      renderRows(data);
+      try{
+        const resp = await fetch('/vct/registry/api/ai_search', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        if (!resp.ok){ return refreshList(); }
+        let data = await resp.json();
+        if (selectedFilter) { data = data.filter(it => itemMatchesFilter(it, selectedFilter)); }
+        renderRows(data);
+      }catch(e){ refreshList(); }
     }
 
-    // ---- Debounce
+    // Debounce
     function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
-    const debounced = debounce(refreshList, 300);
+    const debounced = debounce(()=> aiToggle.checked ? aiSearch() : refreshList(), 300);
 
-    // ---- Events
-    searchBtn.addEventListener('click', refreshList);
+    // Events
+    searchBtn.addEventListener('click', () => aiToggle.checked ? aiSearch() : refreshList());
     resetBtn.addEventListener('click', () => {
       searchInput.value='';
       languagesInput.value='';
@@ -845,17 +792,27 @@
       minCallsInput.value='';
       hasSchemaInput.checked=false;
       sortSel.value='';
+      selectedFilter=null;
+      updateFiltersNote();
+      currentPage=1;
       refreshList();
     });
-    scopeSel.addEventListener('change', refreshList);
-    sortSel.addEventListener('change', refreshList);
-    hasSchemaInput.addEventListener('change', refreshList);
+    scopeSel.addEventListener('change', () => aiToggle.checked ? aiSearch() : refreshList());
+    sortSel.addEventListener('change', () => aiToggle.checked ? aiSearch() : refreshList());
+    hasSchemaInput.addEventListener('change', () => aiToggle.checked ? aiSearch() : refreshList());
     [searchInput,languagesInput,propInput,claimInput,minRatingInput,minCallsInput].forEach(el=>{
       el.addEventListener('input', debounced);
     });
-    aiToggle.addEventListener('change', refreshList);
+    aiToggle.addEventListener('change', () => aiToggle.checked ? aiSearch() : refreshList());
 
-    // ---- Initial state from URL
+    // NEW: page size change
+    pageSizeSel.addEventListener('change', () => {
+      pageSize = parseInt(pageSizeSel.value, 10) || 15;
+      currentPage = 1;
+      renderPage(currentPage);
+    });
+
+    // Initial from URL
     (function loadFromURL(){
       const u = new URL(location.href);
       (u.searchParams.get('q')||'') && (searchInput.value = u.searchParams.get('q'));
