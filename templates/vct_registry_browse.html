@@ -728,19 +728,19 @@
         case 'payments_sca':
           return hasAny(['sca','strong customer authentication','payments','psd2']);
         case 'bank_onboarding':
-          return hasAny(['ekyc','kyc','aml','onboarding','banking', 'bank account', 'payment']);
+          return hasAny(['ekyc','kyc','aml','onboarding','banking', 'bank account', 'payment', 'loan', 'mortgage']);
         case 'iban_proof':
-          return hasAny(['iban','account ownership','account proof','bank account']);
+          return hasAny(['iban','account ownership','account proof','bank account', 'swift']);
         case 'tickets_boarding':
           return hasAny(['ticket','boarding','boarding pass','transport','flight','rail','bus']);
         case 'hotel_checkin':
-          return hasAny(['hotel','check-in','check in','accommodation']);
+          return hasAny(['hotel','check-in','check in','accommodation', 'check-out', 'check out', 'room', 'booking']);
         case 'mobility_vehicle':
           return hasAny(['mobility','driving license', 'mobile driver license', 'mdl', 'vehicle','rental','charging','parking']);
         case 'address_residence':
           return hasAny(['address','residence','residency']) || claimHas('street_address','city_address','postal_code','country_address');
         case 'education':
-          return hasAny(['diploma','student','education','student card', 'university','degree','credential']);
+          return hasAny(['diploma','student','education','student card', 'university','degree']);
         case 'professional_licence':
           return hasAny(['professional','certification','professional','qualification']);
         case 'eprescription':
