@@ -90,23 +90,23 @@
       cursor: pointer;
     }
 
+    /* Extra breathing room between Card (col 1) and Name (col 2) on phones */
+  @media (max-width: 600px) {
+    /* right padding on Card/Display column */
+    td:nth-child(1), th:nth-child(1) {
+      padding-right: 1rem;   /* tweak to taste (e.g., 1.25rem) */
+    }
+    /* left padding on Name column (you already had 1rem—can increase) */
+    td:nth-child(2), th:nth-child(2) {
+      padding-left: 1.50rem; 
+    }
+    /* optional: nudge the card away from the cell edge */
+    .vct-card {
+      margin-right: .50rem;
+    }
+  }
 
-    /* On very small screens, let cards take full width */
-    @media (max-width: 600px) {
-      th, td {
-        padding: 0.5rem 1rem; 
-      }
-      td:nth-child(2), th:nth-child(2) {
-        padding-left: 1.5rem;  
-      }
-    }
-    @media (max-width: 480px) {
-      .vct-card {
-        max-width: 100%;
-        width: 100%;
-      }
-    }
-    
+
     .vct-card:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,.12); }
     .vct-card .logo-wrap {
       position: absolute; top:.55rem; left:.8rem;
@@ -138,13 +138,6 @@
     #pagination .btn.active { background:var(--blue); color:#fff; border-color:var(--blue); }
     #pagination .btn[disabled] { opacity:.6; cursor:not-allowed; }
 
-    /* Mobile tweaks */
-    @media (max-width: 600px) {
-      th, td { padding: .5rem .75rem; }
-      td:nth-child(2), th:nth-child(2) { padding-left: 1rem; }
-      .vct-card { max-width: 100%; width: 100%; }
-      td:nth-child(4), th:nth-child(4) { width: 120px; max-width: 120px; }
-    }
   </style>
 </head>
 <body>
