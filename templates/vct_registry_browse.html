@@ -33,7 +33,10 @@
     input[type="text"], select { padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px; min-width:220px; }
     input[type="number"] { padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px; width:110px; }
 
-    table { width:100%; border-collapse: collapse; }
+    table {
+      width:100%;
+      border-collapse: collapse;
+    }
     th, td { padding:.75rem 1rem; border-top:1px solid var(--border); text-align:left; font-size:.95rem; vertical-align: middle; }
     th { background:#f3f4f6; position:sticky; top:0; z-index:1; }
     tbody tr:hover { background:#fafafa; }
@@ -81,7 +84,8 @@
     /* ---- VCT Card column ---- */
     .vct-card {
       aspect-ratio: 85.6 / 53.98; /* ~1.586, ID-1 bank card ratio */
-      width: 260px;
+      width: 100%;
+      min-width: 160px;     /* optional floor so it doesn’t shrink too far */
       max-width: 300px;
       position: relative;
       border-radius: 12px;
@@ -97,6 +101,23 @@
       transition: transform .12s ease, box-shadow .12s ease;
       cursor: pointer;
     }
+
+    /* On very small screens, let cards take full width */
+    @media (max-width: 600px) {
+      th, td {
+        padding: 0.5rem 1rem; 
+      }
+      td:nth-child(2), th:nth-child(2) {
+        padding-left: 1.5rem;  
+      }
+    }
+    @media (max-width: 480px) {
+      .vct-card {
+        max-width: 100%;
+        width: 100%;
+      }
+    }
+
     .vct-card:hover {
       transform: translateY(-1px);
       box-shadow: 0 10px 28px rgba(0,0,0,.12);
@@ -193,7 +214,6 @@
     <div class="nav-group">
       <nav>
         <a href="/menu">Tools</a>
-        <a href="/vct/registry/manage">My VC Types</a>
         <a href="/documentation/vct_registry_browse" target="_blank" rel="noopener">Explain ?</a>
       </nav>
       {% include "account.html" %}
@@ -256,11 +276,11 @@
           <table>
             <thead>
              <tr>
-              <th style="width:20%;">Display</th>
+              <th style="width:30%;">Display</th>
               <th style="width:10%;">Name</th>
               <th style="width:30%;">Description</th>
-              <th style="width:10%;">Claims</th>
-              <th style="width:10%;">Languages</th>
+              <th style="width:5%;">Claims</th>
+              <th style="width:5%;">Languages</th>
               <th style="width:5%;">Popularity</th>
               <th style="width:15%;">Actions</th>
             </tr>
