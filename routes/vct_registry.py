@@ -17,6 +17,9 @@ from db_model import db, VCTRegistry, VCTRating
 
 from schema_from_vct_claims import generate_sd_jwt_vc_schema_from_claims
 
+from vct_builder import generate_sdjwt_vc_schema, generate_claims_metadata_from_schema
+
+
 # ----------------------------------------------------------------------------
 # Logging
 # ----------------------------------------------------------------------------
@@ -373,6 +376,7 @@ def vct_publish(vct_urn: str):
     
     # Parse only if you need to bump calls etc., but SERVE stored bytes
     payload = row.vct_data if isinstance(row.vct_data, str) else row.vct_data.decode("utf-8", "replace")
+    print("row vct _datat = ",row.vct_data)
 
     # Do not re-serialize; return the stored bytes exactly
     resp = Response(payload, mimetype="application/json; charset=utf-8")
@@ -523,6 +527,7 @@ def api_vct_list():
         rows = sorted(rows, key=_pop_score, reverse=True)
 
     is_owner_id = getattr(current_user, "id", None) if is_auth else None
+    
     def row_json(r: VCTRegistry):
         try:
             langs_json = json.loads(r.languages_supported or "[]")
@@ -564,8 +569,117 @@ def api_vct_list():
                 claim_paths.append(".".join(path))
             except Exception:
                 pass
-            
         
+        # Patch
+        def remove_schema_from_vct(r):
+            new_vct_data_json = json.loads(r.vct_data)
+            schema = new_vct_data_json.get("schema")
+            if schema:
+                new_vct_data_json.pop("schema", None)
+                r.vct_data = json.dumps(new_vct_data_json)
+                db.session.commit()
+                print("schema removed from VCT for ", r.name)
+        
+        # Patch
+        def exchange_label_against_name_in_display(r):
+            vct_data_json = json.loads(r.vct_data)
+            display_list = vct_data_json.get("display")
+            new_display_list = []
+            update_row = False
+            for v in display_list:
+                if v.get("label"):
+                    v["name"] = v["label"]
+                    v.pop("label")
+                    print("exchange label against name for ", r.name)
+                    update_row = True
+                new_display_list.append(v)
+            if update_row:
+                vct_data_json["display"] = new_display_list
+                r.vct_data = json.dumps(vct_data_json)
+                db.session.commit()
+        
+        
+       
+        vct_data_json = json.loads(r.vct_data)
+        display = vct_data_json.get("display")
+        print("display avant = ", display)
+        
+        # patch
+        def update_display(r):
+            try:
+                vct_data_json = json.loads(r.vct_data)
+                display = vct_data_json.get("display")
+                if display[0]['rendering']["simple"] in [{}, "{}", None]:
+                    display = [{
+                        "name": r.name,
+                        "lang": "en-US",
+                        "description": r.description,
+                        "rendering": {
+                            "simple": {
+                                "background_color": "#1a73e8",
+                                "text_color": '#ffffff'
+                            }
+                        }
+                    }]
+                    vct_data_json["display"] = display
+                    r.vct_data = json.dumps(vct_data_json)
+                    db.session.commit()
+                    print("Display has been set for ", r.name)
+            except:
+                pass
+        
+        #update_display(r)
+        
+        # patch
+        def compute_integrity(r):
+            vct_json = json.loads(r.vct_data)
+            payload = json.dumps(vct_json, ensure_ascii=False, separators=(",", ":"))
+            payload_bytes = payload.encode("utf-8")
+            integrity = _sri_sha256(payload_bytes)
+            if r.integrity != integrity:
+                r.integrity = integrity
+                db.session.commit()
+                print("integrity update ", r.name)
+        #compute_integrity(r)
+        
+        # patch
+        def add_claims_from_schema(r):
+            if r.languages_supported == "[]":
+                schema = json.loads(r.extra)
+                claims = generate_claims_metadata_from_schema(schema, vct=r.vct)
+                r.languages_supported = json.dumps(["en", "fr"])
+                new_vct_data_json =  json.loads(r.vct_data)
+                new_vct_data_json["claims"] = claims
+                r.vct_data = json.dumps(new_vct_data_json)
+                db.session.commit()
+                print("claims from schema ", r.name)
+        
+        # patch
+        def add_schema_to_database(r):
+            schema = json.loads(r.vct_data).get('schema')
+            properties = json.loads(r.extra).get("properties")
+            if r.extra and not properties:
+                description = json.loads(r.vct_data).get('description')
+                vct = r.vct
+                schema = generate_sdjwt_vc_schema(description, vct=vct)
+                r.extra = json.dumps(schema)
+                db.session.commit()
+                print("schema from LLM added to ", r.name)
+            elif not r.extra and schema:
+                r.extra = json.dumps(schema)
+                db.session.commit()
+                print("schema from VCT added to ", r.name)
+            elif not r.extra and not schema:
+                description = json.loads(r.vct_data).get('description')
+                vct = r.vct
+                schema = generate_sdjwt_vc_schema(description, vct=vct)
+                r.extra = json.dumps(schema)
+                db.session.commit()
+                print("schema from LLM added to ", r.name)
+            else:
+                print(r.name, " not updated")
+        
+            
         base = {
             "id": r.id,
             "name": r.name,
@@ -658,7 +772,11 @@ def api_vct_upload():
     if VCTRegistry.query.filter_by(integrity=integrity).first():
         return jsonify({"error": "An entry with the same integrity already exists."}), 409
 
-    #removed with draft 12
+    #removed schema from VC Type with draft 12
+    if schema := vct_json.get('schema'):
+        vct_json.pop("schema", None)
+    else: 
+        schema = {}
     #schema_hash = _schema_hash(vct_json.get("schema")) if vct_json.get("schema") else ""
     schema_hash = ""
     
@@ -683,6 +801,7 @@ def api_vct_upload():
         search_text=_build_search_text(vct_json),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
+        extra=json.dumps(schema)
     )
     db.session.add(row)
     db.session.commit()
@@ -709,6 +828,7 @@ def api_vct_delete(row_id: int):
     db.session.commit()
     return jsonify({"ok": True})
 
+
 @login_required
 def api_vct_visibility(row_id: int):
     is_admin = getattr(current_user, "is_admin", False) or getattr(current_user, "role", "") == "admin"
@@ -726,6 +846,7 @@ def api_vct_visibility(row_id: int):
     row.updated_at = datetime.now(timezone.utc)
     db.session.commit()
     return jsonify({"ok": True, "is_public": row.is_public})
+
 
 def api_vct_download(row_id: int):
     row = VCTRegistry.query.filter_by(id=row_id).first()
@@ -786,6 +907,7 @@ def api_vct_download_schema(row_id: int):
     resp = Response(payload, mimetype="application/json")
     resp.headers["Content-Disposition"] = f"attachment; filename={row.name or 'schema'}.schema.json"
     return resp
+
 
 @login_required
 def api_vct_rate(row_id: int):

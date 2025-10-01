@@ -343,10 +343,10 @@ def generate_sdjwt_vc_schema(
             "cnf": {
                 "type": "object",
                 "additionalProperties": True,
-                "properties": {"jwk": {"type": "object"}, "jkt": {"type": "string"}},
+                "properties": {"jwk": {"type": "object"}},
             },
         },
-        "required": ["vct"],
+        "required": ["vct", "iss"],
     }
     if issuer:
         schema["properties"]["iss"]["const"] = issuer
@@ -545,7 +545,7 @@ def generate_vc_type_metadata(
     langs = list(dict.fromkeys(langs))
 
     client = _ensure_llm(cfg, use_llm=use_llm, require_llm=require_llm, phase="type_metadata")
-    """
+    
     schema = generate_sdjwt_vc_schema(
         description,
         vct=vct,
@@ -553,7 +553,7 @@ def generate_vc_type_metadata(
         cfg=cfg,
         use_llm=use_llm,
         require_llm=require_llm,
-    )"""
+    )
     
     if not credential_name and schema.get("title"):
         credential_name = schema.get("title") 
@@ -588,7 +588,7 @@ def generate_vc_type_metadata(
     type_md: Dict[str, Any] = {
         "vct": vct,
         "display": type_display,
-        #"schema": schema,
+        "schema": schema,
         "claims": claims_md,
     }
 
@@ -679,7 +679,7 @@ def generate_vc_type_metadata_from_schema(
     type_md: Dict[str, Any] = {
         "vct": vct,
         "display": type_display,
-        #"schema": schema_obj,
+        "schema": schema_obj,
         "claims": claims_md,
     }
 
@@ -705,4 +705,62 @@ def generate_sdjwt_vc_schema_from_description(
     require_llm: bool = False,
 ) -> Dict[str, Any]:
     return generate_sdjwt_vc_schema(description, vct=vct, issuer=issuer, cfg=cfg, use_llm=use_llm, require_llm=require_llm)
+
+
+
+def generate_claims_metadata_from_schema(
+    schema: Union[str, Mapping[str, Any]],
+    *,
+    vct: str,
+    cfg: Optional[LLMConfig] = None,
+    credential_name: Optional[str] = None,
+    use_llm: bool = True,
+    require_llm: bool = False,
+    languages: Optional[List[str]] = None,
+    simple_rendering: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    description = ""
+
+    langs = [l.lower() for l in (languages or ["en","fr"]) if isinstance(l, str) and l.strip()]
+    if not langs:
+        langs = ["en","fr"]
+    langs = list(dict.fromkeys(langs))
+
+    client = _ensure_llm(cfg, use_llm=use_llm, require_llm=require_llm, phase="type_metadata")
+
+    schema_obj = _ensure_mapping_schema(schema)
+    # normalize incoming schema to snake_case/EUDI before deriving paths
+    schema_obj = _normalize_schema_node(schema_obj)
+    
+    if not credential_name and schema_obj.get("title"):
+        credential_name = schema_obj.get("title") 
+
+    paths = _business_leaf_paths(schema_obj)
+    labels = _llm_labels_for_paths(description, paths, client=client, languages=langs) or _fallback_labels(paths, languages=langs)
+    #type_display = _llm_type_display(credential_name, description, vct, client=client, languages=langs) or _fallback_type_display(vct, languages=langs)
+
+    # Attach rendering (same object for all languages)
+    #_apply_simple_rendering_to_display(type_display, simple_rendering)
+
+    claims_md: List[Dict[str, Any]] = []
+    for item in labels:
+        p = item.get("path") or []
+        disp = []
+        for lang in langs:
+            loc = (item.get(lang) or {})
+            if loc.get("name"):
+                d = {"lang": lang, "name": loc.get("name")}
+                if loc.get("description"):
+                    d["description"] = loc.get("description")
+                disp.append(d)
+        if not disp:
+            base = _titleize((p[-1] if p else "field").replace("[]"," items"))
+            disp = [{"lang": lang, "name": base} for lang in langs]
+        claims_md.append({
+            "path": p,
+            "display": disp,
+            "sd": "allowed"
+        })
+
+    return claims_md
 

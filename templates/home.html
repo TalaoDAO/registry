@@ -354,55 +354,75 @@
   "name": "Person Identity",
   "description": "Person identity with core claims and localization",
   "display": [
-    { "lang": "en", "name": "Person Identity", "description": "A basic person identity credential" },
-    { "lang": "fr", "name": "Identité Personne", "description": "Un justificatif d'identité de base" }
+    { 
+      "lang": "en-US",
+      "name": "Person Identity",
+      "description": "A basic person identity credential",
+      "rendering": {
+        "simple": {
+          "background_color": "#1a73e8",
+          "text_color": "#FFFFFF"
+        }
+      }
+    },
+    {
+      "lang": "fr-FR",
+      "name": "Identité Personne",
+      "description": "Un justificatif d'identité de base",
+      "rendering": {
+        "simple": {
+            "background_color": "#1a73e8",
+          "text_color": "#FFFFFF"
+        }
+      }
+    }
   ],
   "claims": [
     {
       "path": ["given_name"],
       "display": [
-        { "lang": "en", "label": "Given name", "description": "First name" },
-        { "lang": "fr", "label": "Prénom" }
+        { "lang": "en-US", "label": "Given name", "description": "First name" },
+        { "lang": "fr-FR", "label": "Prénom" }
       ],
       "sd": "allowed"
     },
     {
       "path": ["family_name"],
       "display": [
-        { "lang": "en", "label": "Family name", "description": "Last name" },
-        { "lang": "fr", "label": "Nom de famille" }
+        { "lang": "en-US", "label": "Family name", "description": "Last name" },
+        { "lang": "fr-FR", "label": "Nom de famille" }
       ],
       "sd": "allowed"
     },
     {
       "path": ["birth_date"],
       "display": [
-        { "lang": "en", "label": "Date of birth" },
-        { "lang": "fr", "label": "Date de naissance" }
+        { "lang": "en-US", "label": "Date of birth" },
+        { "lang": "fr-FR", "label": "Date de naissance" }
       ],
       "sd": "allowed"
     },
     {
       "path": ["nationality"],
       "display": [
-        { "lang": "en", "label": "Nationality" },
-        { "lang": "fr", "label": "Nationalité" }
+        { "lang": "en-US", "label": "Nationality" },
+        { "lang": "fr-FR", "label": "Nationalité" }
       ],
       "sd": "allowed"
     },
     {
       "path": ["address"],
       "display": [
-        { "lang": "en", "label": "Address" },
-        { "lang": "fr", "label": "Adresse" }
+        { "lang": "en-US", "label": "Address" },
+        { "lang": "fr-FR", "label": "Adresse" }
       ],
       "sd": "allowed"
     },
     {
       "path": ["address", "street_address"],
       "display": [
-        { "lang": "en", "label": "Street address" },
-        { "lang": "fr", "label": "Rue" }
+        { "lang": "en-US", "label": "Street address" },
+        { "lang": "fr-FR", "label": "Rue" }
       ],
       "sd": "allowed",
       "svg_id": "address_street_address"
@@ -410,32 +430,32 @@
     {
       "path": ["address", "locality"],
       "display": [
-        { "lang": "en", "label": "City/Town" },
-        { "lang": "fr", "label": "Ville" }
+        { "lang": "en-US", "label": "City/Town" },
+        { "lang": "fr-FR", "label": "Ville" }
       ],
       "sd": "allowed"
     },
     {
       "path": ["address", "postal_code"],
       "display": [
-        { "lang": "en", "label": "Postal code" },
-        { "lang": "fr", "label": "Code postal" }
+        { "lang": "en-US", "label": "Postal code" },
+        { "lang": "fr-FR", "label": "Code postal" }
       ],
       "sd": "allowed"
     },
     {
       "path": ["address", "country"],
       "display": [
-        { "lang": "en", "label": "Country" },
-        { "lang": "fr", "label": "Pays" }
+        { "lang": "en-US", "label": "Country" },
+        { "lang": "fr-FR", "label": "Pays" }
       ],
       "sd": "allowed"
     },
     {
       "path": ["emails", null],
       "display": [
-        { "lang": "en", "label": "Email" },
-        { "lang": "fr", "label": "E-mail" }
+        { "lang": "en-US", "label": "Email" },
+        { "lang": "fr-FR", "label": "E-mail" }
       ],
       "sd": "allowed"
     }
