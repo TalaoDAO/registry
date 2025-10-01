@@ -740,7 +740,7 @@ def api_vct_upload():
 
     # build vct_url for publishing and update vct in the registry (stable public URL)
     mode = current_app.config["MODE"]
-    vct_url = mode.server + "vct/registry/publish/" + vct_urn
+    vct_url = mode.server + ".well-known/vct/" + vct_urn
     vct_json["vct"] = vct_url
     
     #recompute uri#integrity for display background_image and logo
