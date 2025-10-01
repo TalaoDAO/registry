@@ -60,7 +60,7 @@ def api_generate_attestation():
         "on_remote_vct": "extends" | "import",   # issuer mode option (default: extends)
         "config_id": "id-in-issuer-metadata",    # optional, issuer mode
         "vct_match": "exact-vct-value",          # optional, issuer mode
-        "languages": ["en","fr"],
+        "languages": ["en-US","fr-FR"],
         "use_llm": false,
         "simple_rendering": { "background_color":"#...", "text_color":"#...", "logo_uri":"https://..." }
       }
@@ -74,12 +74,12 @@ def api_generate_attestation():
     vct_uri = payload.get('vct') or f"urn:uuid:{uuid.uuid4()}"
     name = (payload.get('name') or '').strip() or None
     description = (payload.get('description') or '').strip() or None
-    languages = payload.get('languages') or ['en']
+    languages = payload.get('languages') or ['en-US']
     if not isinstance(languages, list) or not languages:
-        languages = ['en']
-    languages = [str(l).strip().lower() for l in languages if str(l).strip()]
+        languages = ['en-US']
+    languages = [str(l).strip() for l in languages if str(l).strip()]
     if not languages:
-        languages = ['en']
+        languages = ['en-US']
 
     simple = payload.get('simple_rendering') or None
     #use_llm = bool(payload.get('use_llm'))
@@ -176,7 +176,6 @@ def api_list_issuer_configs():
         return jsonify({"error": "'issuer_url' is required"}), 400
     try:
         items = list_sdjwt_configs_from_issuer(issuer=issuer_url)
-        print("items = ", items)
         return current_app.response_class(
             response=json.dumps(items, ensure_ascii=False, indent=2),
             status=200,

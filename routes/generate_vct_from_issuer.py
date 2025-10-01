@@ -162,6 +162,7 @@ def _preferred_en_name(vct_json: Dict[str, Any]) -> Optional[str]:
             return str(label).strip()
     return None
 
+
 def _extract_languages_supported_from_vct(vct_json: Dict[str, Any]) -> List[str]:
     """Copy of registry logic to record language hints on the row."""
     langs: List[str] = []

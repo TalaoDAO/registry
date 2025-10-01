@@ -598,11 +598,36 @@ def api_vct_list():
                 r.vct_data = json.dumps(vct_data_json)
                 db.session.commit()
         
+        # patch
+        def update_lang_value(r):
+            vct_data_json = json.loads(r.vct_data)
+            display_list = vct_data_json.get("display")
+            new_display_list = []
+            update_row = False
+            for v in display_list:
+                if v.get("lang") == "en":
+                    v["lang"] = "en-US"
+                    update_row = True
+                elif v.get("lang") == "en-GB":
+                    v["lang"] = "en-US"
+                    update_row = True
+                elif v.get("lang") == "en-US-FR":
+                    v["lang"] = "en-US"
+                    update_row = True
+                elif v.get("lang") == "fr":
+                    v["lang"] = "fr-FR"
+                    update_row = True
+                elif v.get("lang") == "es":
+                    v["lang"] = "es-ES"
+                    update_row = True
+                else:
+                    pass
+                new_display_list.append(v)
+            if update_row:
+                vct_data_json["display"] = new_display_list
+                r.vct_data = json.dumps(vct_data_json)
+                db.session.commit()
         
-       
-        vct_data_json = json.loads(r.vct_data)
-        display = vct_data_json.get("display")
-        print("display avant = ", display)
         
         # patch
         def update_display(r):
@@ -640,7 +665,7 @@ def api_vct_list():
                 r.integrity = integrity
                 db.session.commit()
                 print("integrity update ", r.name)
-        #compute_integrity(r)
+        compute_integrity(r)
         
         # patch
         def add_claims_from_schema(r):
@@ -743,7 +768,7 @@ def api_vct_upload():
     vct_url = mode.server + ".well-known/vct/" + vct_urn
     vct_json["vct"] = vct_url
     
-    #recompute uri#integrity for display background_image and logo
+    # Compute uri#integrity for display background_image and logo
     display_list = vct_json.get("display")
     for display in display_list:
         if uri := display.get("rendering", {}).get("simple", {}).get("background_image", {}).get("uri"):
@@ -759,26 +784,23 @@ def api_vct_upload():
             else:
                 logging.warning("This url is not available: %s", uri)
     
-    # Compute vct#integrity on the FINAL bytes
-    payload = json.dumps(vct_json, ensure_ascii=False, separators=(",", ":"))
-    payload_bytes = payload.encode("utf-8")
-    integrity = _sri_sha256(payload_bytes)
-    #logging.info("VCT uploaded -> %s", json.dumps(vct_json, indent=2))
-            
     name = vct_json.get("name")
     description = vct_json.get("description")
     langs = _extract_languages_supported_from_vct(vct_json)
-
-    if VCTRegistry.query.filter_by(integrity=integrity).first():
-        return jsonify({"error": "An entry with the same integrity already exists."}), 409
-
-    #removed schema from VC Type with draft 12
+    
+    # move schema from VC Type to r.extra for sd-jwt vc  draft 12
     if schema := vct_json.get('schema'):
         vct_json.pop("schema", None)
     else: 
         schema = {}
-    #schema_hash = _schema_hash(vct_json.get("schema")) if vct_json.get("schema") else ""
-    schema_hash = ""
+    schema_hash = "" # not stored
+    
+    # Compute vct#integrity on the FINAL bytes
+    payload = json.dumps(vct_json, ensure_ascii=False, separators=(",", ":"))
+    payload_bytes = payload.encode("utf-8")
+    integrity = _sri_sha256(payload_bytes)
+    if VCTRegistry.query.filter_by(integrity=integrity).first():
+        return jsonify({"error": "An entry with the same integrity already exists."}), 409        
     
     base_name = name
     suffix = 2

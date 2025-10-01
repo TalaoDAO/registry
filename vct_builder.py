@@ -336,7 +336,7 @@ def generate_sdjwt_vc_schema(
         "additionalProperties": False,
         "properties": {
             "iss": {"type": "string", "format": "uri"},
-            "vct": {"type": "string", "const": vct},
+            "vct": {"type": "string"},
             "iat": {"type": "integer"},
             "nbf": {"type": "integer"},
             "exp": {"type": "integer"},
@@ -348,8 +348,8 @@ def generate_sdjwt_vc_schema(
         },
         "required": ["vct", "iss"],
     }
-    if issuer:
-        schema["properties"]["iss"]["const"] = issuer
+    #if issuer:
+    #    schema["properties"]["iss"]["const"] = issuer
 
     seed = parse_quick_description(description)
     looks_bulleted = bool(seed.get("sections")) and ("-" in description or "\n-" in description or "\n  -" in description)
@@ -539,9 +539,9 @@ def generate_vc_type_metadata(
     languages: Optional[List[str]] = None,
     simple_rendering: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    langs = [l.lower() for l in (languages or ["en","fr"]) if isinstance(l, str) and l.strip()]
+    langs = [l for l in (languages or ["en-US","fr-FR"]) if isinstance(l, str) and l.strip()]
     if not langs:
-        langs = ["en","fr"]
+        langs = ["en-US","fr-FR"]
     langs = list(dict.fromkeys(langs))
 
     client = _ensure_llm(cfg, use_llm=use_llm, require_llm=require_llm, phase="type_metadata")
@@ -635,9 +635,9 @@ def generate_vc_type_metadata_from_schema(
 ) -> Dict[str, Any]:
     description = ""
 
-    langs = [l.lower() for l in (languages or ["en","fr"]) if isinstance(l, str) and l.strip()]
+    langs = [l for l in (languages or ["en-US","fr-FR"]) if isinstance(l, str) and l.strip()]
     if not langs:
-        langs = ["en","fr"]
+        langs = ["en-US","fr-FR"]
     langs = list(dict.fromkeys(langs))
 
     client = _ensure_llm(cfg, use_llm=use_llm, require_llm=require_llm, phase="type_metadata")
@@ -721,9 +721,9 @@ def generate_claims_metadata_from_schema(
 ) -> Dict[str, Any]:
     description = ""
 
-    langs = [l.lower() for l in (languages or ["en","fr"]) if isinstance(l, str) and l.strip()]
+    langs = [l for l in (languages or ["en-US","fr-FR"]) if isinstance(l, str) and l.strip()]
     if not langs:
-        langs = ["en","fr"]
+        langs = ["en-US","fr-FR"]
     langs = list(dict.fromkeys(langs))
 
     client = _ensure_llm(cfg, use_llm=use_llm, require_llm=require_llm, phase="type_metadata")

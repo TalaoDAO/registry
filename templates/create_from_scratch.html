@@ -166,15 +166,16 @@
             <label>Languages (select one or more)</label>
             <div class="lang-list" role="group" aria-label="Languages">
               {% set langs = [
-                ("bg","Български"), ("cs","Čeština"), ("da","Dansk"), ("de","Deutsch"), ("et","Eesti"),
-                ("el","Ελληνικά"), ("en","English"), ("es","Español"), ("fr","Français"), ("ga","Gaeilge"),
-                ("hr","Hrvatski"), ("it","Italiano"), ("lv","Latviešu"), ("lt","Lietuvių"), ("hu","Magyar"),
-                ("mt","Malti"), ("nl","Nederlands"), ("pl","Polski"), ("pt","Português"), ("ro","Română"),
-                ("sk","Slovenčina"), ("sl","Slovenščina"), ("fi","Suomi"), ("sv","Svenska"), ("ja","日本語"), ("hi","हिन्दी")
+                ("bg-BG","Български"), ("cs-CZ","Čeština"), ("da-DK","Dansk"), ("de-DE","Deutsch"), ("et-EE","Eesti"),
+                ("el-GR","Ελληνικά"), ("en-US","English"), ("es-ES","Español"), ("fr-FR","Français"), ("ga-IE","Gaeilge"),
+                ("hr-HR","Hrvatski"), ("it-IT","Italiano"), ("lv-LV","Latviešu"), ("lt-LT","Lietuvių"), ("hu-HU","Magyar"),
+                ("mt-MT","Malti"), ("nl-NL","Nederlands"), ("pl-PL","Polski"), ("pt-PT","Português"), ("ro-RO","Română"),
+                ("sk-SK","Slovenčina"), ("sl-SI","Slovenščina"), ("fi-FI","Suomi"), ("sv-SE","Svenska"),
+                ("ja-JP","日本語"), ("hi-IN","हिन्दी")
               ] %}
               {% for code, label in langs %}
                 <label class="check">
-                  <input type="checkbox" name="languages" value="{{code}}" {% if code in ['en','fr'] %}checked{% endif %} />
+                  <input type="checkbox" name="languages" value="{{code}}" {% if code in ['en-US','fr-FR'] %}checked{% endif %} />
                   {{label}}
                 </label>
               {% endfor %}
@@ -205,7 +206,7 @@
           </div>
 
           <div class="row editor-wrap" id="editor-wrap" style="display:none;">
-            <label for="editor">Editable JSON</label>
+            <label for="editor">Editable JSON (schema will be removed from VC Type when  upload to registry)</label>
             <div id="editor" class="editor" contenteditable="true" spellcheck="false" aria-multiline="true" aria-label="Editable JSON"></div>
             <span id="editor-msg" class="note"></span>
           </div>
@@ -408,7 +409,7 @@
 
       // languages
       const langs = Array.from(document.querySelectorAll('input[name="languages"]:checked')).map(i => i.value);
-      const languages = langs.length ? langs : ['en'];
+      const languages = langs.length ? langs : ['en-US'];
 
       const payload = {
         input_mode: 'description',

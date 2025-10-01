@@ -478,7 +478,7 @@ def generate_vc_type_metadata_from_issuer(
     result: Dict[str, Any] = {
         "vct": issuer_vct,
         "display": display,
-        #"schema": schema,
+        "schema": schema,
         "claims": claims_md,
     }
 
