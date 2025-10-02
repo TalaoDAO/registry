@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Edit VC Type</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='header.css') }}">
+  <style>
+    :root{ --google-blue:#1a73e8; --google-blue-dark:#1558b0; --surface:#ffffff; --border:#e3e3e3;
+           --text:#202124; --subtext:#5f6368; --bg:#f8f9fa; --ok:#166534; --err:#991b1b; }
+    body { margin:0; background:#f7f9fc; color:#333; font-family: Arial, sans-serif; }
+    .section { max-width:1200px; margin:4rem auto; padding:0 2rem; }
+    .card { width:100%; max-width:1100px; margin:0 auto; background:var(--surface); border:1px solid var(--border);
+            border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.06); overflow:hidden; }
+    .card-header { display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+    .app-mark { width:28px; height:28px; border-radius:6px; background:var(--google-blue); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:.95rem; }
+    .title { margin:0; font-size:1rem; font-weight:700; font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .subtitle { margin:0; font-size:.9rem; color:var(--subtext); font-weight:400; font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+    .card-body { padding:1.25rem; display:grid; gap:1rem; }
+    .row { display:grid; gap:.5rem; }
+    label { font-weight:600; color:#1f2937; }
+    .note { color:var(--subtext); font-size:.9rem; }
+
+    .primary-btn, .secondary-btn, .ghost-btn {
+      appearance:none; border:none; cursor:pointer; text-decoration:none;
+      padding:.8rem 1rem; border-radius:8px; font-weight:600; display:inline-flex; align-items:center; gap:.5rem;
+      font-family:'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    }
+    .primary-btn { background:var(--google-blue); color:#fff; }
+    .primary-btn:hover { background:var(--google-blue-dark); }
+    .secondary-btn { background:#edf2ff; color:#1f3b8a; border:1px solid #c7d2fe; }
+    .ghost-btn { background:transparent; color:#111827; border:1px dashed var(--border); }
+
+    .actions { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; }
+    .actions .spacer { flex:1 1 auto; }
+
+    .editor-wrap { display:grid; gap:.5rem; }
+    .editor-status { font-size:.85rem; color:var(--subtext); }
+    .editor-ok { color: var(--ok); font-weight:600; }
+    .editor-err { color: var(--err); font-weight:600; }
+    /* Match create_from_scratch editor size */
+    .editor { width:100%; height:520px; border:1px solid var(--border); border-radius:12px; padding:.75rem .9rem;
+      background:#0b1020; color:#e6edf3; font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:.92rem; line-height:1.4; tab-size:2; white-space:pre; overflow:auto; }
+
+    /* Overlay (copied to match create_from_scratch) */
+    .overlay { position:fixed; inset:0; background:rgba(255,255,255,.7); backdrop-filter: blur(2px);
+               display:none; align-items:center; justify-content:center; z-index:50; }
+    .spinner { width:46px; height:46px; border-radius:999px; border:4px solid #d1d5db; border-top-color:var(--google-blue);
+               animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display:none !important; }
+
+    /* Modal — add the same responsive footer rules */
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:60; }
+    .modal { width:min(640px, calc(100vw - 2rem)); background:#fff; border-radius:14px; border:1px solid var(--border); box-shadow:0 20px 60px rgba(0,0,0,.35); }
+    .modal header { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1px solid var(--border); background:#fff; }
+    .modal h3 { margin:0; font-size:1.05rem; }
+    .modal .body { padding:1rem 1.25rem; display:grid; gap:.75rem; }
+    .field { display:grid; gap:.35rem; }
+    .copy-row { display:flex; gap:.5rem; align-items:center; }
+    .copy-row input { flex:1; }
+    .modal footer {
+      padding:1rem 1.25rem;
+      display:flex; gap:.5rem; justify-content:flex-end; align-items:center; flex-wrap:wrap;
+      border-top:1px solid var(--border);
+    }
+    .modal footer a, .modal footer button { max-width:100%; }
+
+    @media (max-width: 420px) {
+      .modal footer { justify-content:stretch; }
+      .modal footer a, .modal footer button { width:100%; }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root { --surface:#1f1f1f; --border:#2a2a2a; --text:#e8eaed; --subtext:#9aa0a6; --bg:#0f1113; }
+      .modal, .modal header { background:#141618; border-color:#2a2a2a; }
+      .modal footer { border-color:#2a2a2a; }
+      .secondary-btn { background:#0f172a; color:#cbd5e1; border:1px solid #334155; }
+      .ghost-btn { color:#cbd5e1; border-color:#334155; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <strong><a style="color: var(--primary); text-decoration: none;" href="/">VC-REGISTRY.COM</a></strong>
+    </div>
+    <div class="nav-group">
+      <nav>
+        <a href="/menu">Menu</a>
+        <a href="/documentation/manage_registry" target="_blank" rel="noopener">Explain ?</a>
+      </nav>
+      {% include "account.html" %}
+    </div>
+  </header>
+
+  <main class="section">
+    <h1 style="text-align:center; margin:0 0 .5rem 0;">Edit VC Type</h1>
+    <p class="note" style="text-align:center; margin:0 0 1.25rem 0;">
+      Edit the VC Type JSON. Saving will update the existing entry and recompute integrity; the <code>vct</code> URL stays the same.
+    </p>
+
+    <article class="card" role="form" aria-labelledby="form-title">
+      <header class="card-header">
+        <div class="app-mark" aria-hidden="true">E</div>
+        <div>
+          <h2 class="title" id="form-title">Inline JSON Editor</h2>
+          <p class="subtitle">Load → edit → validate → save</p>
+        </div>
+      </header>
+
+      <section class="card-body">
+        <div class="actions">
+          <button type="button" class="secondary-btn" id="format-btn" disabled>Format</button>
+          <button type="button" class="secondary-btn" id="validate-btn" disabled>Validate</button>
+          <button type="button" class="ghost-btn" id="reset-btn" disabled>Reset</button>
+          <button type="button" class="secondary-btn" id="copy-btn" disabled>Copy</button>
+          <span class="spacer" aria-hidden="true"></span>
+          <button type="button" class="primary-btn" id="download-btn" disabled>Save JSON to Desktop</button>
+          <button type="button" class="primary-btn" id="save-btn" disabled>Save to Registry</button>
+          <span id="status" class="note editor-status"></span>
+        </div>
+
+        <div class="row editor-wrap">
+          <label for="editor">Editable JSON</label>
+          <div id="editor" class="editor" contenteditable="true" spellcheck="false" aria-multiline="true" aria-label="Editable JSON"></div>
+          <span id="editor-msg" class="note"></span>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <!-- Keep overlay order consistent with create_from_scratch -->
+  <div class="overlay" id="overlay" aria-live="polite" aria-busy="true">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.75rem;">
+      <div class="spinner" aria-hidden="true"></div>
+      <div style="font-family: ui-monospace, Menlo, Consolas, monospace;">Working…</div>
+    </div>
+  </div>
+
+  <!-- Success modal (same structure & sizing rules as create_from_scratch) -->
+  <div class="modal-backdrop" id="upload-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title" aria-hidden="true">
+    <div class="modal">
+      <header>
+        <h3 id="upload-modal-title">VC Type updated</h3>
+        <button type="button" class="ghost-btn" id="upload-modal-close" aria-label="Close">Close</button>
+      </header>
+      <div class="body">
+        <div class="field">
+          <label for="modal-vct-url">VCT URL</label>
+          <div class="copy-row">
+            <input id="modal-vct-url" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-vct-url">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modal-integrity">Integrity (SRI)</label>
+          <div class="copy-row">
+            <input id="modal-integrity" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-integrity">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="modal-urn">VCT URN (hash id)</label>
+          <div class="copy-row">
+            <input id="modal-urn" type="text" readonly>
+            <button type="button" class="secondary-btn" data-copy="#modal-urn">Copy</button>
+          </div>
+        </div>
+      </div>
+      <footer>
+        <button type="button" class="primary-btn" id="upload-modal-open">Open VCT</button>
+        <button type="button" class="primary-btn" id="upload-modal-ok">Done</button>
+      </footer>
+    </div>
+  </div>
+
+  {% include "footer.html" %}
+
+  <script>
+    const rowId = {{ row_id }};
+    const overlay = document.getElementById('overlay');
+    const editor = document.getElementById('editor');
+    const editorMsg = document.getElementById('editor-msg');
+    const status = document.getElementById('status');
+
+    const formatBtn = document.getElementById('format-btn');
+    const validateBtn = document.getElementById('validate-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const saveBtn = document.getElementById('save-btn');
+
+    const modalBackdrop = document.getElementById('upload-modal-backdrop');
+    const modalClose = document.getElementById('upload-modal-close');
+    const modalOk = document.getElementById('upload-modal-ok');
+    const modalOpenLink = document.getElementById('upload-modal-open');
+    const modalVctUrl = document.getElementById('modal-vct-url');
+    const modalIntegrity = document.getElementById('modal-integrity');
+    const modalUrn = document.getElementById('modal-urn');
+
+    let originalText = '';
+    let lastBlobUrl = null;
+    let lastFilename = null;
+
+    function showOverlay(on){ overlay.style.display = on ? 'flex' : 'none'; }
+    function setStatus(text, ok=null){
+      status.textContent = text || '';
+      status.className = 'note editor-status';
+      if (ok === true) status.classList.add('editor-ok');
+      if (ok === false) status.classList.add('editor-err');
+    }
+    function getEditorText(){ return (editor.textContent || '').replace(/\\u00A0/g, ' '); }
+    function setEditorText(txt){ editor.textContent = txt; }
+    function makeDownload(text, filename){
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      lastBlobUrl = URL.createObjectURL(blob);
+      lastFilename = filename;
+      downloadBtn.disabled = false;
+    }
+    function showModal(){ modalBackdrop.style.display='flex'; modalBackdrop.setAttribute('aria-hidden','false'); }
+    function hideModal(){ modalBackdrop.style.display='none'; modalBackdrop.setAttribute('aria-hidden','true'); }
+    [modalClose, modalOk].forEach(b => b.addEventListener('click', hideModal));
+    modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) hideModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hideModal(); });
+    modalOpenLink.addEventListener('click', () => {
+      const url = modalVctUrl.value.trim();
+      if (url) window.open(url, '_blank', 'noopener');
+    });
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-copy]');
+      if (!btn) return;
+      const sel = btn.getAttribute('data-copy');
+      const inp = document.querySelector(sel);
+      if (!inp) return;
+      try {
+        await navigator.clipboard.writeText(inp.value || '');
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => btn.textContent = 'Copy', 1200);
+      } catch { inp.select(); }
+    });
+
+    // Load VC Type and pretty-print it immediately
+    (async function load(){
+      showOverlay(true);
+      try{
+        const r = await fetch('/vct/registry/api/download/' + rowId);
+        const text = await r.text();
+        if (!r.ok) throw new Error(text || 'Load failed');
+
+        let pretty = text;
+        try {
+          const obj = JSON.parse(text);
+          pretty = JSON.stringify(obj, null, 2); // indent on first render
+        } catch {}
+
+        originalText = pretty;
+        setEditorText(pretty);
+        setStatus('Loaded ✓', true);
+        formatBtn.disabled = validateBtn.disabled = resetBtn.disabled = copyBtn.disabled = downloadBtn.disabled = saveBtn.disabled = false;
+
+        // derive filename from vct/name if present
+        try{
+          const obj = JSON.parse(pretty);
+          const vctTail = String(obj.vct||'vct').split(/[/:]/).pop().replace(/[^a-z0-9_-]/gi,'_');
+          const ts = new Date().toISOString().replace(/[:.]/g,'-');
+          makeDownload(pretty, `vct_${vctTail}_${ts}.json`);
+        }catch{}
+      }catch(e){
+        setStatus(e.message || 'Load failed', false);
+      }finally{
+        showOverlay(false);
+      }
+    })();
+
+    // Editor helpers
+    formatBtn.addEventListener('click', () => {
+      try { const pretty = JSON.stringify(JSON.parse(getEditorText()), null, 2); setEditorText(pretty); setStatus('Formatted ✓', true); editorMsg.textContent=''; if (lastFilename) makeDownload(pretty, lastFilename); }
+      catch(e){ setStatus('Invalid JSON — cannot format', false); editorMsg.textContent = e.message; }
+    });
+    validateBtn.addEventListener('click', () => {
+      try { JSON.parse(getEditorText()); setStatus('JSON is valid ✓', true); editorMsg.textContent=''; }
+      catch(e){ setStatus('Invalid JSON', false); editorMsg.textContent = e.message; }
+    });
+    resetBtn.addEventListener('click', () => { setEditorText(originalText); setStatus('Reset ✓', true); editorMsg.textContent=''; });
+    copyBtn.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(getEditorText()); setStatus('Copied ✓', true); } catch(e){ setStatus('Copy failed', false); }
+    });
+    editor.addEventListener('input', () => {
+      const t = getEditorText();
+      if (lastFilename) makeDownload(t, lastFilename);
+    });
+    downloadBtn.addEventListener('click', () => { if (lastBlobUrl) { const a = document.createElement('a'); a.href=lastBlobUrl; a.download=lastFilename||'vct.json'; document.body.appendChild(a); a.click(); a.remove(); } });
+
+    // Save back to registry (same row)
+    saveBtn.addEventListener('click', async () => {
+      const text = getEditorText().trim();
+      if (!text){ setStatus('Nothing to save.', false); return; }
+      let obj;
+      try { obj = JSON.parse(text); } catch(e){ setStatus('Invalid JSON: ' + (e.message||e), false); return; }
+
+      const fd = new FormData();
+      fd.append('file', new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' }), 'vct.json');
+
+      setStatus('Saving…', null);
+      showOverlay(true);
+      try{
+        const r = await fetch('/vct/registry/api/update/' + rowId, { method:'POST', body: fd });
+        const data = await r.json().catch(()=>({}));
+        if (!r.ok) throw new Error(data.error || 'Save failed');
+
+        setStatus('Saved ✓', true);
+        modalVctUrl.value = data.vct || '';
+        modalIntegrity.value = data.integrity || '';
+        modalUrn.value = data.vct_urn || '';
+        showModal();
+      }catch(e){
+        setStatus(e.message || 'Save failed', false);
+      }finally{
+        showOverlay(false);
+      }
+    });
+  </script>
+</body>
+</html>

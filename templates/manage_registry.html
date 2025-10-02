@@ -334,10 +334,14 @@
       const copyIntBtn = document.createElement('button'); copyIntBtn.type='button'; copyIntBtn.className='ghost-btn'; copyIntBtn.textContent='Copy integrity'; copyIntBtn.addEventListener('click', () => copyText(item.integrity || ''));
       const score = document.createElement('span'); if (typeof item.score !== 'undefined'){ score.className='note'; score.textContent = `score: ${Number(item.score).toFixed(2)}`; }
 
+     
+     
+
       tdAct.appendChild(dlVct);
       tdAct.appendChild(copyVctBtn);
       tdAct.appendChild(copyIntBtn);
-      if (score.textContent) tdAct.appendChild(score);
+      //if (score.textContent) tdAct.appendChild(score);
+      
 
       // Extend button → pass row_id and integrity
       const ext = document.createElement('a');
@@ -346,6 +350,15 @@
       ext.href = `/vct/registry/extend?row_id=${encodeURIComponent(item.id)}&integrity=${encodeURIComponent(item.integrity||'')}`;
       ext.title = 'Create a child VCT that extends this one';
       tdAct.appendChild(ext);
+
+
+       // Edit button
+      const edit = document.createElement('a');
+      edit.className = 'secondary-btn';
+      edit.textContent = 'Edit';
+      edit.href = '/vct/registry/editor/' + encodeURIComponent(item.id);
+      edit.title = 'Edit this VC Type in place';
+      tdAct.appendChild(edit);
 
       if (item.can_modify !== false) {
         const del = document.createElement('button');
