@@ -230,17 +230,51 @@
       const url = modalVctUrl.value.trim();
       if (url) window.open(url, '_blank', 'noopener');
     });
+
+    // Clipboard helpers with robust fallbacks
+    async function copyText(text){
+      if (typeof text !== 'string') text = String(text ?? '');
+      // Prefer modern API when available (requires https or localhost)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch(e) {
+          // continue to fallback
+        }
+      }
+      // Fallback: hidden textarea + execCommand
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return !!ok;
+      } catch(e){
+        return false;
+      }
+    }
+
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-copy]');
       if (!btn) return;
       const sel = btn.getAttribute('data-copy');
       const inp = document.querySelector(sel);
       if (!inp) return;
-      try {
-        await navigator.clipboard.writeText(inp.value || '');
+      const success = await copyText(inp.value || '');
+      if (success) {
         btn.textContent = 'Copied ✓';
         setTimeout(() => btn.textContent = 'Copy', 1200);
-      } catch { inp.select(); }
+      } else {
+        try { inp.select(); } catch {}
+        setStatus('Copy failed — your browser blocked clipboard access.', false);
+      }
     });
 
     // Load VC Type and pretty-print it immediately
@@ -287,7 +321,8 @@
     });
     resetBtn.addEventListener('click', () => { setEditorText(originalText); setStatus('Reset ✓', true); editorMsg.textContent=''; });
     copyBtn.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(getEditorText()); setStatus('Copied ✓', true); } catch(e){ setStatus('Copy failed', false); }
+      const ok = await copyText(getEditorText());
+      setStatus(ok ? 'Copied ✓' : 'Copy failed — your browser blocked clipboard access.', !!ok);
     });
     editor.addEventListener('input', () => {
       const t = getEditorText();

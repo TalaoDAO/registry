@@ -180,13 +180,13 @@
     });
 
     // Live redirect when verification completes
-    const source = new EventSource('/verifier/wallet/stream?session_id={{ session_id }}');
+    const source = new EventSource('/signin/wallet/stream?session_id={{ session_id }}');
     source.onmessage = function (event) {
       try {
         const result = JSON.parse(event.data);
         if (!result) return;
         if (result.session_id === '{{ session_id }}' && result.status === 'complete') {
-          window.location.href = '/verifier/wallet/followup?session_id=' + result.session_id;
+          window.location.href = '/signin/wallet/followup?session_id=' + result.session_id;
         }
       } catch (e) { /* ignore */ }
     };

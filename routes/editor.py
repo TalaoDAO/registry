@@ -39,6 +39,7 @@ def editor_page(row_id: int):
         return render_template("error.html", message="Not found or not permitted"), 404
     return render_template("editor.html", user=current_user, row_id=row.id)
 
+
 @login_required
 def api_vct_update(row_id: int):
     """
@@ -116,8 +117,9 @@ def api_vct_update(row_id: int):
         row.name = obj.get("name") or row.name
         row.description = obj.get("description") or row.description
     except Exception:
-        pass
-
+        logging.warning("No editor update")
+        
+    
     row.integrity = integrity
     row.languages_supported = json.dumps(_extract_languages_supported_from_vct(vct_json), ensure_ascii=False)
     row.keywords = ",".join(_extract_keywords(vct_json))

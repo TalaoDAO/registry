@@ -8,7 +8,7 @@ didkit 0.3.0
 ## Install
 
 mkdir registry  
-cd issuer
+cd registry
 python3 -m venv venv  
 . venv/bin/activate  
 

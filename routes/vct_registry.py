@@ -663,8 +663,17 @@ def api_vct_list():
             integrity = _sri_sha256(payload_bytes)
             if r.integrity != integrity:
                 r.integrity = integrity
-                db.session.commit()
-                print("integrity update ", r.name)
+                try:
+                    db.session.commit()
+                    print("integrity update ", r.name)
+                except Exception:
+                    db.session.rollback() 
+                    logging.error("update integrity failed with %s - %s", r.name, r.id)
+                    try:
+                        db.session.expire(r)
+                    except Exception:
+                        pass                  
+        
         compute_integrity(r)
         
         # patch
