@@ -665,7 +665,7 @@ def api_vct_list():
                 r.integrity = integrity
                 try:
                     db.session.commit()
-                    print("integrity update ", r.name)
+                    logging.info("integrity update %s", r.name)
                 except Exception:
                     db.session.rollback() 
                     logging.error("update integrity failed with %s - %s", r.name, r.id)

@@ -640,7 +640,7 @@
       {key:"payments_sca", label:"Payments: SCA"},
       {key:"bank_onboarding", label:"Bank onboarding (eKYC)"},
       {key:"iban_proof", label:"IBAN / account proof"},
-      {key:"tickets_boarding", label:"Tickets & boarding"},
+      {key:"tickets_boarding", label:"Travel, tickets and boarding"},
       {key:"hotel_checkin", label:"Hotel check-in"},
       {key:"mobility_vehicle", label:"Mobility & vehicle access"},
       {key:"address_residence", label:"Address / residence proof"},
@@ -650,7 +650,9 @@
       {key:"business_services", label:"Business services access"},
       {key:"crossborder_egov", label:"Cross-border public service access"},
       {key:"human_resources", label:"Human Resources"},
-      {key:"business_wallet", label:"Business Wallet"}
+      {key:"business_wallet", label:"Business Wallet"},
+      {key:"ai_agent", label:"Ai Agent"},
+      {key:"crypto", label:"Crypto Assets"}
     ];
     const filterGrid = document.getElementById('filter-grid');
     const filtersNote = document.getElementById('filters-note');
@@ -702,7 +704,7 @@
         case 'payments_sca': return hasAny(['sca','strong customer authentication','payments','psd2']);
         case 'bank_onboarding': return hasAny(['ekyc','kyc','aml','onboarding','banking','bank account','payment','loan','mortgage']);
         case 'iban_proof': return hasAny(['iban','account ownership','account proof','bank account','swift']);
-        case 'tickets_boarding': return hasAny(['ticket','boarding','boarding pass','transport','flight','rail','bus']);
+        case 'tickets_boarding': return hasAny(['travel', 'visa', 'ticket','boarding','boarding pass','transport','flight','rail','bus']);
         case 'hotel_checkin': return hasAny(['hotel','check-in','check in','accommodation','check-out','check out','room','booking']);
         case 'mobility_vehicle': return hasAny(['mobility','driving license','mobile driver license','mdl','vehicle','rental','charging','parking']);
         case 'address_residence': return hasAny(['address','residence','residency']) || claimHas('street_address','city_address','postal_code','country_address');
@@ -713,6 +715,8 @@
         case 'human_resources': return hasAny(['employee','employer']);
         case 'crossborder_egov': return hasAny(['cross-border','egov','public service','eidas']);
         case 'business_wallet': return hasAny(['business wallet','EUDIB','company wallet','lpid','company representative','company officer','e_invoicing','dpp','supply chain']);
+        case 'ai_agent': return hasAny(['AI Agent','ai agent', 'AI', 'Agentic web','MCP','Agent', 'A2A']);
+        case 'crypto': return hasAny(['Stablecoin','NFT','Ethereum', 'Polygon', 'cryptocurrency', 'Binance', 'Tezos', 'Bitcoin', 'Digital Euro', 'USDC', 'USDT', 'DLT', 'blockchain']);
         default: return true;
       }
     }
