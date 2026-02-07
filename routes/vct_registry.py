@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 import secrets
 from flask import current_app, jsonify, render_template, request, Response
 from flask_login import login_required, current_user
+from sqlalchemy.exc import IntegrityError
 
 from db_model import db, VCTRegistry, VCTRating
 
@@ -656,25 +657,72 @@ def api_vct_list():
         #update_display(r)
         
         # patch
+
         def compute_integrity(r):
             vct_json = json.loads(r.vct_data)
-            payload = json.dumps(vct_json, ensure_ascii=False, separators=(",", ":"))
+            payload = json.dumps(
+                vct_json,
+                ensure_ascii=False,
+                separators=(",", ":")
+            )
             payload_bytes = payload.encode("utf-8")
             integrity = _sri_sha256(payload_bytes)
-            if r.integrity != integrity:
-                r.integrity = integrity
+
+            # nothing to do
+            if r.integrity == integrity:
+                return
+
+            # check if another row already has this integrity
+            existing = (
+                VCTRegistry.query
+                .filter(VCTRegistry.integrity == integrity)
+                .filter(VCTRegistry.id != r.id)
+                .first()
+            )
+
+            if existing:
+                logging.warning(
+                    "Duplicate integrity detected, deleting row %s (id=%s), existing id=%s",
+                    r.name, r.id, existing.id
+                )
                 try:
+                    db.session.delete(r)
                     db.session.commit()
-                    logging.info("integrity update %s", r.name)
                 except Exception as e:
-                    db.session.rollback() 
-                    logging.error("update integrity failed with %s - %s, error = %s", r.name, r.id, str(e))
-                    try:
-                        db.session.expire(r)
-                    except Exception:
-                        pass                  
-        
-        #compute_integrity(r)
+                    db.session.rollback()
+                    logging.error(
+                        "Failed to delete duplicate row %s (id=%s): %s",
+                        r.name, r.id, str(e)
+                    )
+                return
+
+            # otherwise update integrity
+            r.integrity = integrity
+            try:
+                db.session.commit()
+                logging.info("Integrity updated for %s (id=%s)", r.name, r.id)
+            except IntegrityError:
+                db.session.rollback()
+                logging.warning(
+                    "Integrity race detected, deleting row %s (id=%s)",
+                    r.name, r.id
+                )
+                try:
+                    db.session.delete(r)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+            except Exception as e:
+                db.session.rollback()
+                logging.error(
+                    "Update integrity failed for %s (id=%s): %s",
+                    r.name, r.id, str(e)
+                )
+                try:
+                    db.session.expire(r)
+                except Exception:
+                    pass
+        compute_integrity(r)
         
         # patch
         def add_claims_from_schema(r):
