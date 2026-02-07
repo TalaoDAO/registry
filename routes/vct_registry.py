@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -282,6 +283,161 @@ def _rating_payload_full(row: VCTRegistry, *, user_id: Optional[int]) -> Dict[st
         "your_rating": your,
     }
 
+
+# ----------------------------------------------------------------------------
+# Category "popular filters" (shared with vct_registry_browse.html)
+# Used to compute "real top categories" for home page.
+# ----------------------------------------------------------------------------
+
+POPULAR_FILTERS = [
+    {"key": "pid", "label": "PID"},
+    {"key": "identity_auth", "label": "Identity & authentication"},
+    {"key": "age_verification", "label": "Age verification"},
+    {"key": "qes_signature", "label": "Qualified eSignature (QES)"},
+    {"key": "payments_sca", "label": "Payments, SCA, ."},
+    {"key": "bank_onboarding", "label": "Bank onboarding (eKYC)"},
+    {"key": "iban_proof", "label": "IBAN, account proof"},
+    {"key": "tickets_boarding", "label": "Travel, tickets and boarding"},
+    {"key": "hotel_checkin", "label": "Hotel check-in"},
+    {"key": "mobility_vehicle", "label": "Mobility"},
+    {"key": "address_residence", "label": "Address and residence proof"},
+    {"key": "education", "label": "Diplomas and student ID"},
+    {"key": "professional_licence", "label": "Professional qualifications and licences"},
+    {"key": "eprescription", "label": "ePrescription and health"},
+    {"key": "business_services", "label": "Business services access"},
+    {"key": "crossborder_egov", "label": "Cross-border public service access"},
+    {"key": "human_resources", "label": "Human Resources"},
+    {"key": "business_wallet", "label": "Business Wallet"},
+    {"key": "ai_agent", "label": "Ai Agent"},
+    {"key": "crypto", "label": "Crypto Assets"},
+    {"key": "social_network", "label": "Social Network"},
+]
+
+def _claim_heads_from_vct_data(vct_data: str) -> set[str]:
+    """Extract the first segment ("head") of each claim path, like the browse UI does.
+
+    The browse page builds a Set of claim heads by splitting each claim path on '.' or '/'
+    and taking the first segment. We mirror that logic here so category counts match.
+    """
+    heads: set[str] = set()
+    try:
+        doc = json.loads(vct_data) if isinstance(vct_data, str) else (vct_data or {})
+    except Exception:
+        doc = {}
+
+    claims = doc.get("claims") or []
+    for c in claims:
+        try:
+            p = (c or {}).get("path") or []
+            if isinstance(p, list) and p:
+                first = p[0]
+                if isinstance(first, str) and first and first != "[]":
+                    head = re.split(r"[./]", first, maxsplit=1)[0]
+                    if head:
+                        heads.add(head)
+            elif isinstance(p, str) and p and p != "[]":
+                head = re.split(r"[./]", p, maxsplit=1)[0]
+                if head:
+                    heads.add(head)
+        except Exception:
+            continue
+    return heads
+
+def _matches_category(text: str, claim_heads: set[str], key: str) -> bool:
+    """Mirror vct_registry_browse.html itemMatchesFilter() switch() exactly.
+
+    Important: the browse UI lowercases the *text* then does `text.includes(kw)` without
+    lowercasing `kw`. So keywords are effectively case-sensitive and only match if they
+    are already lowercase. We keep the same behaviour so counts match the browse page.
+    """
+    t = (text or "").lower()
+
+    def has(kw: str) -> bool:
+        return str(kw) in t
+
+    def has_any(arr: list[str]) -> bool:
+        return any(has(x) for x in arr)
+
+    def claim_has(*heads: str) -> bool:
+        return any((h in claim_heads) for h in heads if h)
+
+    if key == "pid":
+        return has_any(["PID"])
+    if key == "identity_auth":
+        return has_any(["identity", "authentication", "login", "eid", "pid"]) or claim_has(
+            "given_name", "family_name", "first_name", "birth_date"
+        )
+    if key == "age_verification":
+        return has_any(["age verification", "age 18", "over 18"]) or claim_has(
+            "age_equal_or_over", "age", "age_over_18", "over_18", "over18"
+        )
+    if key == "qes_signature":
+        return has_any(["qes", "qualified e-signature", "qualified electronic signature", "esignature", "e-signature"])
+    if key == "payments_sca":
+        return has_any(["sca", "strong customer authentication", "payments", "psd2"])
+    if key == "bank_onboarding":
+        return has_any(["ekyc", "kyc", "aml", "onboarding", "banking", "bank account", "payment", "loan", "mortgage"])
+    if key == "iban_proof":
+        return has_any(["iban", "account ownership", "account proof", "bank account", "swift"])
+    if key == "tickets_boarding":
+        return has_any(["travel", "visa", "ticket", "boarding", "boarding pass", "transport", "flight", "rail", "bus"])
+    if key == "hotel_checkin":
+        return has_any(["hotel", "check-in", "check in", "accommodation", "check-out", "check out", "room", "booking"])
+    if key == "mobility_vehicle":
+        return has_any(["mobility", "driving license", "mobile driver license", "mdl", "vehicle", "rental", "charging", "parking"])
+    if key == "address_residence":
+        return has_any(["address", "residence", "residency"]) or claim_has(
+            "street_address", "city_address", "postal_code", "country_address"
+        )
+    if key == "education":
+        return has_any(["diploma", "student", "education", "student card", "university", "degree"])
+    if key == "professional_licence":
+        return has_any(["professional", "certification", "professional", "qualification"])
+    if key == "eprescription":
+        return has_any(["eprescription", "prescription", "health", "medical", "health", "health card"])
+    if key == "business_services":
+        return has_any(["business", "b2b", "b2g", "enterprise", "business wallet", "badge", "company card"])
+    if key == "human_resources":
+        return has_any(["employee", "employer"])
+    if key == "crossborder_egov":
+        return has_any(["cross-border", "egov", "public service", "eidas"])
+    if key == "business_wallet":
+        return has_any(["business wallet", "EUDIB", "company wallet", "lpid", "company representative", "company officer", "e_invoicing", "dpp", "supply chain"])
+    if key == "ai_agent":
+        return has_any(["AI Agent", "ai agent", "AI", "Agentic web", "MCP", "Agent", "A2A"])
+    if key == "crypto":
+        return has_any(["Stablecoin", "NFT", "Ethereum", "Polygon", "cryptocurrency", "Binance", "Tezos", "Bitcoin", "Digital Euro", "USDC", "USDT", "DLT", "blockchain"])
+    if key == "social_network":
+        return has_any(["Discord", "Facebook", "TikTok", "Instagram", "Social Network", "X", "Twitter"])
+    return True
+
+def _compute_top_categories(limit: int = 10) -> list[dict]:
+    """Compute top categories by NUMBER OF VCTs in each category (public only).
+    A VCT can belong to multiple categories, like in the browse UI.
+    """
+    totals = {f["key"]: 0 for f in POPULAR_FILTERS}
+    labels = {f["key"]: f["label"] for f in POPULAR_FILTERS}
+
+    q = VCTRegistry.query.filter_by(is_public=True)
+    for r in q.yield_per(200):
+        text = f"{getattr(r,'name','') or ''} {getattr(r,'description','') or ''} {getattr(r,'search_text','') or ''} {getattr(r,'keywords','') or ''}"
+        claim_heads = _claim_heads_from_vct_data(getattr(r, "vct_data", "") or "")
+        for f in POPULAR_FILTERS:
+            k = f["key"]
+            try:
+                if _matches_category(text, claim_heads, k):
+                    totals[k] += 1
+            except Exception:
+                continue
+
+    ranked = sorted(
+        [{"key": k, "label": labels.get(k, k), "count": int(v)} for k, v in totals.items()],
+        key=lambda x: x["count"],
+        reverse=True,
+    )
+    ranked = [x for x in ranked if x["count"] > 0]
+    return ranked[: max(1, int(limit or 10))]
+
 # ----------------------------------------------------------------------------
 # Route registration
 # ----------------------------------------------------------------------------
@@ -305,7 +461,9 @@ def init_app(app):
     app.add_url_rule("/vct/registry/api/visibility/<int:row_id>", view_func=api_vct_visibility, methods=["POST"])  # publish/unpublish
     app.add_url_rule("/vct/registry/api/download/<int:row_id>", view_func=api_vct_download, methods=["GET"])  # full doc
     app.add_url_rule("/vct/registry/api/download_schema/<int:row_id>", view_func=api_vct_download_schema, methods=["GET"])  # schema-only
-    app.add_url_rule("/vct/registry/api/rate/<int:row_id>", view_func=api_vct_rate, methods=["POST"])    # stars
+    app.add_url_rule("/vct/registry/api/rate/<int:row_id>", view_func=api_vct_rate, methods=["POST"]) 
+    app.add_url_rule("/vct/registry/api/top_categories", view_func=api_top_categories, methods=["GET"])  # top categories
+# stars
 
 # ----------------------------------------------------------------------------
 # UI pages
@@ -792,6 +950,22 @@ def api_vct_list():
         return base
 
     return jsonify([row_json(r) for r in rows])
+
+
+# ----------------------------------------------------------------------------
+# API: top categories (real top by calls_count)
+# ----------------------------------------------------------------------------
+
+def api_top_categories():
+    """Return top categories based on COUNT of public VCTs matching each category."""
+    try:
+        limit = int(request.args.get("limit") or 10)
+    except Exception:
+        limit = 10
+    limit = max(1, min(limit, 50))
+    data = _compute_top_categories(limit=limit)
+    return jsonify(data)
+
 
 # ----------------------------------------------------------------------------
 # API: upload / delete / visibility / download / download_schema / rate

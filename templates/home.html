@@ -130,6 +130,7 @@
         <div class="label">Added last 7 days</div>
         <div class="value">{{ stats.new_week or 0 }}</div>
       </div>
+      <!--
       <div class="kpi" role="status">
         <div class="label">Total calls</div>
         <div class="value">{{ stats.total_calls or 0 }}</div>
@@ -138,6 +139,7 @@
         <div class="label">Avg rating</div>
         <div class="value">{{ '%.2f'|format(stats.avg_rating or 0.0) }}<span class="sub"> / 5</span></div>
       </div>
+    -->
       <div class="kpi" role="status">
         <div class="label">Top languages</div>
         <div class="lang-badges">
@@ -151,28 +153,61 @@
         </div>
       </div>
     </section>
-
-    <!-- POPULAR (kept, slightly tighter) -->
+    <!-- POPULAR (real top categories) -->
     <section class="block" aria-label="Popular">
       <div class="card">
-        <h2 style="margin-bottom:.5rem;">Top 3 most‑called VCTs</h2>
-        {% if stats.top_vcts and stats.top_vcts|length > 0 %}
-          <ol style="margin:0; padding-left:1.2rem;">
-            {% for item in stats.top_vcts %}
-              <li style="margin:.35rem 0;">
-                <div style="display:flex; justify-content:space-between; gap:.75rem; align-items:baseline;">
-                  <div>
-                    <strong>{{ item.name or 'Untitled VCT' }}</strong>
-                    {% if item.vct %}<span class="muted">·</span> <a class="muted" href="{{ item.vct }}?preview=1" target="_blank" rel="noopener">open →</a>{% endif %}
-                  </div>
-                  <div class="muted">{{ item.calls_count }} calls</div>
-                </div>
-              </li>
-            {% endfor %}
-          </ol>
-        {% else %}
-          <p class="muted" style="margin:0;">No calls yet.</p>
-        {% endif %}
+        <h2 style="margin-bottom:.5rem;">Top categories (by VC count)</h2>
+
+        <ol id="top-categories-list" style="margin:0; padding-left:1.2rem;">
+          <li class="muted" style="margin:.35rem 0;">Loading…</li>
+        </ol>
+
+        <p id="top-categories-empty" class="muted" style="margin:0; display:none;">No calls yet.</p>
+
+        <script>
+          (async function(){
+            const list = document.getElementById('top-categories-list');
+            const empty = document.getElementById('top-categories-empty');
+            try{
+              const resp = await fetch('/vct/registry/api/top_categories?limit=10');
+              if (!resp.ok) throw new Error('bad status');
+              const data = await resp.json();
+              if (!Array.isArray(data) || data.length === 0){
+                list.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+              }
+              list.innerHTML = '';
+              for (const c of data){
+                const li = document.createElement('li');
+                li.style.margin = '.35rem 0';
+                const wrap = document.createElement('div');
+                wrap.style.display = 'flex';
+                wrap.style.justifyContent = 'space-between';
+                wrap.style.gap = '.75rem';
+                wrap.style.alignItems = 'baseline';
+
+                const left = document.createElement('div');
+                const a = document.createElement('a');
+                a.href = '/vct/registry/browse?kw=' + encodeURIComponent(c.key || '') + '&sort=calls';
+                a.textContent = c.label || (c.key || 'Category');
+                a.style.fontWeight = '700';
+                left.appendChild(a);
+
+                const right = document.createElement('div');
+                right.className = 'muted';
+                right.textContent = String(c.count || 0) + ' VC Types';
+
+                wrap.appendChild(left);
+                wrap.appendChild(right);
+                li.appendChild(wrap);
+                list.appendChild(li);
+              }
+            }catch(e){
+              list.innerHTML = '<li class="muted" style="margin:.35rem 0;">(unavailable)</li>';
+            }
+          })();
+        </script>
       </div>
     </section>
 

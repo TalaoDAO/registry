@@ -634,7 +634,7 @@
 
     // Popular filters (unchanged)
     const POPULAR_FILTERS = [
-      {key:"pid", label:"PID"},
+      //{key:"pid", label:"PID"},
       {key:"identity_auth", label:"Identity & authentication"},
       {key:"age_verification", label:"Age verification"},
       {key:"qes_signature", label:"Qualified eSignature (QES)"},
@@ -668,7 +668,14 @@
         const label = document.createElement('label');
         label.className = 'pill';
         label.innerHTML = `<input type="checkbox" id="${id}" data-key="${f.key}"><span>${f.label}</span>`;
-        filterGrid.appendChild(label);
+        
+        // Apply preselected filter (from URL)
+        if (selectedFilter && f.key === selectedFilter){
+          const cb = label.querySelector('input[type=checkbox]');
+          if (cb) cb.checked = true;
+          label.classList.add('active');
+        }
+filterGrid.appendChild(label);
       });
       filterGrid.addEventListener('change', (e) => {
         const target = e.target.closest('input[type=checkbox]');
@@ -700,7 +707,7 @@
       const hasAny = (arr) => arr.some(has);
       const claimHas = (...heads) => heads.some(h => claimHeads.has(h));
       switch(fkey){
-        case 'pid': return hasAny(['PID']);
+        //case 'pid': return hasAny(['PID']);
         case 'identity_auth': return hasAny(['identity','authentication','login','eid','pid']) || claimHas('given_name','family_name','first_name','birth_date');
         case 'age_verification': return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age','age_over_18','over_18','over18');
         case 'qes_signature': return hasAny(['qes','qualified e-signature','qualified electronic signature','esignature','e-signature']);
@@ -816,6 +823,8 @@
     // Initial from URL
     (function loadFromURL(){
       const u = new URL(location.href);
+      // Preselect popular filter from URL (?kw=...)
+      (u.searchParams.get('kw')||'') && (selectedFilter = u.searchParams.get('kw'));
       (u.searchParams.get('q')||'') && (searchInput.value = u.searchParams.get('q'));
       (u.searchParams.get('languages')||'') && (languagesInput.value = u.searchParams.get('languages'));
       (u.searchParams.get('prop')||'') && (propInput.value = u.searchParams.get('prop'));
