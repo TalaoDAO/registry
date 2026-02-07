@@ -666,15 +666,15 @@ def api_vct_list():
                 try:
                     db.session.commit()
                     logging.info("integrity update %s", r.name)
-                except Exception:
+                except Exception as e:
                     db.session.rollback() 
-                    logging.error("update integrity failed with %s - %s", r.name, r.id)
+                    logging.error("update integrity failed with %s - %s, error = %s", r.name, r.id, str(e))
                     try:
                         db.session.expire(r)
                     except Exception:
                         pass                  
         
-        compute_integrity(r)
+        #compute_integrity(r)
         
         # patch
         def add_claims_from_schema(r):

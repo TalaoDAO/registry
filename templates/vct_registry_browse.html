@@ -634,25 +634,27 @@
 
     // Popular filters (unchanged)
     const POPULAR_FILTERS = [
+      {key:"pid", label:"PID"},
       {key:"identity_auth", label:"Identity & authentication"},
       {key:"age_verification", label:"Age verification"},
       {key:"qes_signature", label:"Qualified eSignature (QES)"},
-      {key:"payments_sca", label:"Payments: SCA"},
+      {key:"payments_sca", label:"Payments, SCA, ..."},
       {key:"bank_onboarding", label:"Bank onboarding (eKYC)"},
-      {key:"iban_proof", label:"IBAN / account proof"},
+      {key:"iban_proof", label:"IBAN, account proof"},
       {key:"tickets_boarding", label:"Travel, tickets and boarding"},
       {key:"hotel_checkin", label:"Hotel check-in"},
-      {key:"mobility_vehicle", label:"Mobility & vehicle access"},
-      {key:"address_residence", label:"Address / residence proof"},
-      {key:"education", label:"Diplomas & student ID"},
-      {key:"professional_licence", label:"Professional qualifications & licences"},
-      {key:"eprescription", label:"ePrescription / health"},
+      {key:"mobility_vehicle", label:"Mobility"},
+      {key:"address_residence", label:"Address and residence proof"},
+      {key:"education", label:"Diplomas and student ID"},
+      {key:"professional_licence", label:"Professional qualifications and licences"},
+      {key:"eprescription", label:"ePrescription and health"},
       {key:"business_services", label:"Business services access"},
       {key:"crossborder_egov", label:"Cross-border public service access"},
       {key:"human_resources", label:"Human Resources"},
       {key:"business_wallet", label:"Business Wallet"},
       {key:"ai_agent", label:"Ai Agent"},
-      {key:"crypto", label:"Crypto Assets"}
+      {key:"crypto", label:"Crypto Assets"},
+       {key:"social_network", label:"Social Network"}
     ];
     const filterGrid = document.getElementById('filter-grid');
     const filtersNote = document.getElementById('filters-note');
@@ -698,6 +700,7 @@
       const hasAny = (arr) => arr.some(has);
       const claimHas = (...heads) => heads.some(h => claimHeads.has(h));
       switch(fkey){
+        case 'pid': return hasAny(['PID']);
         case 'identity_auth': return hasAny(['identity','authentication','login','eid','pid']) || claimHas('given_name','family_name','first_name','birth_date');
         case 'age_verification': return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age','age_over_18','over_18','over18');
         case 'qes_signature': return hasAny(['qes','qualified e-signature','qualified electronic signature','esignature','e-signature']);
@@ -717,6 +720,7 @@
         case 'business_wallet': return hasAny(['business wallet','EUDIB','company wallet','lpid','company representative','company officer','e_invoicing','dpp','supply chain']);
         case 'ai_agent': return hasAny(['AI Agent','ai agent', 'AI', 'Agentic web','MCP','Agent', 'A2A']);
         case 'crypto': return hasAny(['Stablecoin','NFT','Ethereum', 'Polygon', 'cryptocurrency', 'Binance', 'Tezos', 'Bitcoin', 'Digital Euro', 'USDC', 'USDT', 'DLT', 'blockchain']);
+        case 'social_network': return hasAny(['Discord','Facebook', 'TikTok', 'Instagram','Social Network','X', 'Twitter']);
         default: return true;
       }
     }
