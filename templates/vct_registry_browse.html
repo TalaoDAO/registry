@@ -635,7 +635,7 @@
     // Popular filters (unchanged)
     const POPULAR_FILTERS = [
       //{key:"pid", label:"PID"},
-      {key:"identity_auth", label:"Identity & authentication"},
+      {key:"identity_auth", label:"Identity"},
       {key:"age_verification", label:"Age verification"},
       {key:"qes_signature", label:"Qualified eSignature (QES)"},
       {key:"payments_sca", label:"Payments, SCA, ..."},
@@ -708,7 +708,7 @@ filterGrid.appendChild(label);
       const claimHas = (...heads) => heads.some(h => claimHeads.has(h));
       switch(fkey){
         //case 'pid': return hasAny(['PID']);
-        case 'identity_auth': return hasAny(['identity','authentication','login','eid','pid']) || claimHas('given_name','family_name','first_name','birth_date');
+        case 'identity_auth': return hasAny(['identity','login','eid','pid', 'eID', 'Personal ID']) || claimHas('given_name','family_name','first_name','birth_date');
         case 'age_verification': return hasAny(['age verification','age 18','over 18']) || claimHas('age_equal_or_over','age','age_over_18','over_18','over18');
         case 'qes_signature': return hasAny(['qes','qualified e-signature','qualified electronic signature','esignature','e-signature']);
         case 'payments_sca': return hasAny(['sca','strong customer authentication','payments','psd2']);

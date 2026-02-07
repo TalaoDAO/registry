@@ -290,8 +290,8 @@ def _rating_payload_full(row: VCTRegistry, *, user_id: Optional[int]) -> Dict[st
 # ----------------------------------------------------------------------------
 
 POPULAR_FILTERS = [
-    {"key": "pid", "label": "PID"},
-    {"key": "identity_auth", "label": "Identity & authentication"},
+    #{"key": "pid", "label": "PID"},
+    {"key": "identity_auth", "label": "Identity"},
     {"key": "age_verification", "label": "Age verification"},
     {"key": "qes_signature", "label": "Qualified eSignature (QES)"},
     {"key": "payments_sca", "label": "Payments, SCA, ."},
